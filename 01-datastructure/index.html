@@ -1112,8 +1112,8 @@ print("one int    :", sys.getsizeof(0))</code></pre>
     </section>
 
     <section class="slide">
-      <span class="kicker">Part 2 · Sequence ADT Recap</span>
-      <h2>시퀀스 ADT 요약: 문법이 아니라 연산 계약으로 보기</h2>
+      <span class="kicker">Part 2 · List as Mutable Sequence</span>
+      <h2>List = mutable sequence of object references</h2>
       <pre><code>a: list[int] = [10, 20, 30, 40]
 print(a[0], a[-1])
 a[1] = 25
@@ -1160,8 +1160,8 @@ $$
     </section>
 
     <section class="slide">
-      <span class="kicker">Part 2.1 · List Internals</span>
-      <h2>리스트 내부 구현과 성능</h2>
+      <span class="kicker">Part 2.1 · Internal Representation & Cost Model</span>
+      <h2>동적 배열로서의 list: 저장 모델과 비용</h2>
       <p>리스트는 C 레벨에서 동적 배열로 구현되며, 배열에는 객체 자체가 아니라 객체 참조가 저장됩니다.</p>
       <div class="formula">
 $$
@@ -1194,8 +1194,8 @@ for step in range(1000):
 
     <section class="slide">
       <span class="kicker">Part 2.2 · List API Semantics</span>
-      <h2>List 기본 함수의 동작 원리: in-place, 반환값, 비용</h2>
-      <p>실전에서 가장 많은 버그는 메서드 의미를 혼동할 때 발생합니다. 특히 <code>sort</code>, <code>append</code>, <code>extend</code>는 대부분 <strong>in-place 연산</strong>이며 반환값이 <code>None</code>입니다.</p>
+      <h2>Core Operations and In-Place Semantics</h2>
+      <p>list는 단순 함수 모음이 아니라 상태 전이 시스템입니다. 각 메서드는 “상태를 바꾸는가(in-place)”, “새 객체를 반환하는가”, “비용이 어디서 발생하는가”를 함께 봐야 합니다.</p>
       <pre><code>x: list[int] = [3, 1, 2]
 y = x.sort()          # in-place
 z = sorted(x)         # new list
@@ -1207,122 +1207,179 @@ b: list[int] = [1, 2]
 b.extend([3, 4])      # [1,2,3,4]
 print(a, b)</code></pre>
       <table>
-        <thead><tr><th>메서드</th><th>의미</th><th>반환</th><th>복잡도(평균)</th></tr></thead>
+        <thead><tr><th>기능군</th><th>메서드</th><th>반환</th><th>핵심 의미/비용</th></tr></thead>
         <tbody>
-          <tr><td><code>append(x)</code></td><td>끝에 1개 추가</td><td><code>None</code></td><td>amortized O(1)</td></tr>
-          <tr><td><code>extend(it)</code></td><td>이터러블 원소 확장</td><td><code>None</code></td><td>O(k)</td></tr>
-          <tr><td><code>insert(i,x)</code></td><td>i 위치 삽입</td><td><code>None</code></td><td>O(n)</td></tr>
-          <tr><td><code>pop()</code>/<code>pop(i)</code></td><td>삭제 + 반환</td><td>원소</td><td>끝 O(1), 중간 O(n)</td></tr>
-          <tr><td><code>remove(x)</code></td><td>첫 일치 원소 삭제</td><td><code>None</code></td><td>O(n)</td></tr>
-          <tr><td><code>sort(key=...)</code></td><td>Timsort 안정 정렬</td><td><code>None</code></td><td>O(n log n)</td></tr>
-          <tr><td><code>reverse()</code></td><td>제자리 뒤집기</td><td><code>None</code></td><td>O(n)</td></tr>
+          <tr><td>구조 변경</td><td><code>append</code>, <code>extend</code>, <code>insert</code>, <code>pop</code>, <code>remove</code>, <code>clear</code></td><td>대부분 <code>None</code></td><td>in-place mutation, 위치에 따라 O(1)~O(n)</td></tr>
+          <tr><td>조회</td><td><code>index</code>, <code>count</code></td><td>int</td><td>선형 탐색 O(n), 실패 시 <code>ValueError</code> 가능</td></tr>
+          <tr><td>복사/변환</td><td><code>copy</code>, <code>list(a)</code>, <code>a[:]</code></td><td>new list</td><td>얕은 복사(shallow), 중첩 원소 참조는 공유 가능</td></tr>
+          <tr><td>순서 조작</td><td><code>reverse</code>, <code>sort</code>, <code>sorted</code></td><td><code>sort/reverse</code>=None</td><td><code>sort</code>는 stable + in-place, <code>sorted</code>는 새 리스트</td></tr>
         </tbody>
       </table>
-      <p class="muted">딥러닝 로그/체크포인트 정렬에서는 <code>sorted(records, key=...)</code>로 원본 보존 여부를 명시하는 것이 안전합니다.</p>
+      <p class="muted">체크리스트: 연산마다 `state mutation 여부`, `반환 객체`, `복잡도`를 같이 표기하면 코드 리뷰에서 대부분의 list 버그를 사전에 제거할 수 있습니다.</p>
     </section>
 
     <section class="slide">
       <span class="kicker">Part 2.3 · Indexing & Slicing</span>
-      <h2>Indexing/Slicing: 경계조건과 복사 의미론</h2>
-      <p>슬라이싱은 “부분조회”이면서 동시에 “새 리스트 생성”입니다. 인덱스 범위와 step 방향을 정확히 이해하지 못하면 성능 저하와 상태 오염이 동시에 발생합니다.</p>
+      <h2>Indexing and Slice Semantics: 경계조건, clipping, 상태변화</h2>
+      <p>단일 인덱스와 슬라이스는 실패 동작이 다릅니다. 단일 인덱스는 범위를 벗어나면 예외가 나지만, 슬라이스는 범위를 자동 clipping해 빈 리스트를 포함한 결과를 돌려줄 수 있습니다.</p>
       <pre><code>arr: list[int] = [0, 1, 2, 3, 4, 5, 6]
-print(arr[1:5])      # [1,2,3,4]
-print(arr[:-1])      # 마지막 제외
-print(arr[::2])      # 짝수 인덱스 샘플링
-print(arr[::-1])     # 역순 복사
+print(arr[100:200])   # []  (slice clipping)
+# print(arr[100])     # IndexError
 
-arr[2:5] = [20, 30]  # 슬라이스 대입(길이 변경 가능)
+print(arr[1:6:2])     # [1, 3, 5]
+print(arr[::-1])      # 역순 복사
+
+arr[2:5] = [20, 30]   # 길이 변경 가능
+del arr[1:3]          # arr[1:3] = [] 와 동치
 print(arr)</code></pre>
       <div class="formula">
 $$
-a[i:j:s]\ \text{creates a new list of length}\ \Theta\!\left(\frac{j-i}{s}\right)
+a[i:j:s]\ \text{creates a new list},\quad
+\text{time/space}=\Theta(k)\ \text{where }k=\left\lceil\frac{j-i}{s}\right\rceil
 $$
       </div>
       <table>
-        <thead><tr><th>패턴</th><th>의미</th><th>주의점</th></tr></thead>
+        <thead><tr><th>주제</th><th>정확한 의미</th><th>버그 포인트</th></tr></thead>
         <tbody>
-          <tr><td><code>a[-1]</code></td><td>마지막 원소</td><td>빈 리스트면 <code>IndexError</code></td></tr>
-          <tr><td><code>a[i:j]</code></td><td>반열린 구간 [i, j)</td><td>j는 포함되지 않음</td></tr>
-          <tr><td><code>a[::k]</code></td><td>stride 샘플링</td><td>큰 데이터에서 복사 비용 큼</td></tr>
-          <tr><td><code>a[::-1]</code></td><td>역순 복사</td><td>in-place 역순은 <code>reverse()</code></td></tr>
-          <tr><td><code>a[:]</code></td><td>shallow copy</td><td>중첩 원소는 여전히 공유</td></tr>
+          <tr><td>단일 인덱스</td><td><code>a[i]</code>는 하나의 원소 접근</td><td>범위 밖이면 <code>IndexError</code></td></tr>
+          <tr><td>슬라이스</td><td><code>a[i:j]</code>는 반열린 구간 [i, j)</td><td>범위 밖이어도 clipping되어 예외가 안 날 수 있음</td></tr>
+          <tr><td>extended slice</td><td><code>a[i:j:s]</code>는 stride 선택</td><td><code>s &lt; 0</code>일 때 방향 해석 실수 빈번</td></tr>
+          <tr><td>슬라이스 대입</td><td>구간 교체로 길이 변화 가능</td><td>같은 객체 alias가 있으면 외부 상태도 변함</td></tr>
+          <tr><td>삭제 연산</td><td><code>del a[i:j]</code> == <code>a[i:j]=[]</code></td><td>인덱스 이동으로 후속 루프 로직 깨짐</td></tr>
         </tbody>
       </table>
-      <p class="muted">배치 분할(<code>ids[start:end]</code>)은 간단하지만 대규모 반복에서는 복사 비용이 누적됩니다. 스트리밍이면 iterator 기반 접근을 검토하세요.</p>
+      <p class="muted">핵심: slice는 view가 아니라 새 list(outer container)입니다. 다만 내부 원소가 mutable이면 참조 공유가 남습니다.</p>
     </section>
 
     <section class="slide">
-      <span class="kicker">Part 2.4 · Comprehension & Lazy Evaluation</span>
-      <h2>List Comprehension, Generator, zip(strict=True)</h2>
-      <p>컴프리헨션은 필터+변환이 단순할 때 강력합니다. 단계가 길어지면 named function으로 분해해야 검증 가능성이 유지됩니다. 또한 generator는 메모리를 줄이지만 1회 소비 객체라는 점을 반드시 고려해야 합니다.</p>
+      <span class="kicker">Part 2.4 · Aliasing, Repetition, and Shallow Copy</span>
+      <h2>복사가 보이지만 공유가 남아 있는 경우</h2>
+      <p>list 의미론에서 가장 중요한 함정은 참조 공유(aliasing)입니다. <code>b=a</code>, <code>a[:]</code>, <code>list(a)</code>, <code>deepcopy(a)</code>는 겉보기는 비슷하지만 공유 수준이 다릅니다.</p>
       <div class="cols-2">
         <div class="card">
-          <h3>Comprehension</h3>
-          <pre><code>nums: list[int] = list(range(10))
-sq_even: list[int] = [x * x for x in nums if x % 2 == 0]
-label: dict[int, str] = {x: ("even" if x % 2 == 0 else "odd") for x in nums}
-print(sq_even, label[3])</code></pre>
+          <h3>반복 생성(aliasing) 버그</h3>
+          <pre><code>bad = [[0] * 3] * 4
+bad[0][0] = 1
+print(bad)  # 모든 행이 함께 변경
+
+good = [[0] * 3 for _ in range(4)]
+good[0][0] = 1
+print(good) # 첫 행만 변경</code></pre>
         </div>
         <div class="card">
-          <h3>Generator + strict zip</h3>
-          <pre><code>g = (x * x for x in range(5))
-print(list(g))     # consume once
-print(list(g))     # []
-
-feat = [1, 2, 3]
-target = [10, 20]
-# list(zip(feat, target, strict=True))  # ValueError</code></pre>
-        </div>
-      </div>
-      <table>
-        <thead><tr><th>선택 기준</th><th>권장</th><th>이유</th></tr></thead>
-        <tbody>
-          <tr><td>단일 단계 필터/매핑</td><td>comprehension</td><td>의도 압축 + 가독성 유지</td></tr>
-          <tr><td>다단계 분기/예외 처리</td><td>for + 함수 분해</td><td>중간 상태 검증 용이</td></tr>
-          <tr><td>대용량 스트리밍</td><td>generator</td><td>메모리 피크 감소</td></tr>
-          <tr><td>feature/label 정합성 검증</td><td><code>zip(..., strict=True)</code></td><td>길이 불일치 조기 탐지</td></tr>
-        </tbody>
-      </table>
-    </section>
-
-    <section class="slide">
-      <span class="kicker">Part 2.5 · Sequence Semantics</span>
-      <h2>시퀀스 의미론: aliasing, 복사 깊이, iterator 소비</h2>
-      <p>대학원 강의에서 중요한 지점은 “어떤 문법을 쓰는가”가 아니라 “객체 참조가 언제 공유되는가”입니다. 시퀀스 버그의 대부분은 참조 의미론과 소비 모델을 혼동할 때 발생합니다.</p>
-      <div class="cols-2">
-        <div class="card">
-          <h3>참조 공유와 얕은 복사</h3>
-          <pre><code>a: list[list[int]] = [[1, 2], [3, 4]]
-b = a                 # 같은 객체
-c = a[:]              # shallow copy
+          <h3>shallow vs deep copy</h3>
+          <pre><code>import copy
+a = [[1], [2]]
+b = a          # alias
+c = a[:]       # shallow copy
+d = list(a)    # shallow copy
+e = copy.deepcopy(a)
 
 b[0].append(99)
-print(a)              # 영향 받음
-print(c)              # 내부 리스트 공유로 영향 받음</code></pre>
-        </div>
-        <div class="card">
-          <h3>iterator 1회 소비</h3>
-          <pre><code>it = iter([10, 20, 30])
-print(list(it))  # [10, 20, 30]
-print(list(it))  # []
-
-# 재사용이 필요하면 materialize
-xs = list(iter([10, 20, 30]))</code></pre>
+print(a, c, d, e)</code></pre>
         </div>
       </div>
       <table>
-        <thead><tr><th>개념</th><th>실패 증상</th><th>설계 규칙</th></tr></thead>
+        <thead><tr><th>표현</th><th>outer container</th><th>inner elements</th><th>의미</th></tr></thead>
         <tbody>
-          <tr><td>aliasing</td><td>하위 모듈 수정이 상위 상태를 오염</td><td>함수 경계에서 복사/불변화 정책 명시</td></tr>
-          <tr><td>shallow copy</td><td>중첩 구조에서 원본이 함께 변경</td><td>중첩 자료는 <code>deepcopy</code> 기준으로 검토</td></tr>
-          <tr><td>iterator consumption</td><td>두 번째 epoch에서 데이터 고갈</td><td>재순회 경로는 재생성 또는 리스트화</td></tr>
+          <tr><td><code>b = a</code></td><td>공유</td><td>공유</td><td>동일 객체 alias</td></tr>
+          <tr><td><code>c = a[:]</code></td><td>새 객체</td><td>공유</td><td>shallow copy</td></tr>
+          <tr><td><code>c = list(a)</code></td><td>새 객체</td><td>공유</td><td>shallow copy</td></tr>
+          <tr><td><code>deepcopy(a)</code></td><td>새 객체</td><td>복제</td><td>중첩 구조 분리</td></tr>
+        </tbody>
+      </table>
+      <p class="muted">핵심 규칙: list 슬라이스는 view가 아니라 shallow copy입니다. “새 리스트 생성”과 “내부 원소 공유”가 동시에 성립합니다.</p>
+    </section>
+
+    <section class="slide">
+      <span class="kicker">Part 2.5 · Comprehension and Materialization Strategy</span>
+      <h2>List Comprehension과 materialization 비용</h2>
+      <p>컴프리헨션의 핵심은 “짧게 쓰기”가 아니라 “단일 변환을 명확히 표현”하는 것입니다. 다단계 분기/예외/상태 업데이트가 들어가면 명명된 루프나 함수 분해가 더 안전합니다.</p>
+      <div class="cols-2">
+        <div class="card">
+          <h3>권장 패턴</h3>
+          <pre><code>nums: list[int] = list(range(10))
+sq_even: list[int] = [x * x for x in nums if x % 2 == 0]
+pairs: list[tuple[int, int]] = [(i, i * i) for i in nums]
+print(sq_even[:3], pairs[:3])</code></pre>
+        </div>
+        <div class="card">
+          <h3>과도한 압축의 안티패턴</h3>
+          <pre><code># 조건/분기/예외가 겹치면 comprehension보다 분해가 낫다
+out: list[int] = []
+for x in nums:
+    if x % 2 == 0:
+        out.append(x * x)</code></pre>
+        </div>
+      </div>
+      <table>
+        <thead><tr><th>상황</th><th>권장 표현</th><th>이유</th></tr></thead>
+        <tbody>
+          <tr><td>단일 단계 필터/매핑</td><td>list comprehension</td><td>의도 압축 + 리뷰 용이</td></tr>
+          <tr><td>다단계 분기/로깅/예외</td><td>for + 함수 분해</td><td>중간 상태 검증 가능</td></tr>
+          <tr><td>대용량 스트리밍</td><td>generator expression</td><td>메모리 피크 감소</td></tr>
+          <tr><td>다회 순회 필요</td><td>명시적 materialize(<code>list(...)</code>)</td><td>1회 소비 이슈 차단</td></tr>
         </tbody>
       </table>
       <div class="formula">
 $$
-\text{bug risk} \propto \text{shared mutable references} + \text{implicit consumption}
+\text{Readability} \propto \frac{1}{\text{nesting depth}+\text{implicit state}}
 $$
       </div>
+    </section>
+
+    <section class="slide">
+      <span class="kicker">Part 2.6 · Sorting and Ordering Contracts</span>
+      <h2><code>sort()</code> vs <code>sorted()</code>, stable sort, multi-key ranking</h2>
+      <p>정렬은 단순 출력 정리가 아니라 ordering contract를 명시하는 도구입니다. 특히 실험 랭킹/체크포인트 선택에서는 tie-break 규칙을 코드로 고정해야 재현성이 확보됩니다.</p>
+      <div class="cols-2">
+        <div class="card">
+          <h3>API 차이</h3>
+          <pre><code>xs: list[int] = [3, 1, 2]
+ys = sorted(xs)   # new list
+xs.sort()         # in-place
+print(xs, ys)</code></pre>
+        </div>
+        <div class="card">
+          <h3>stable sorting</h3>
+          <pre><code>items: list[tuple[str, int]] = [("b", 2), ("a", 2), ("c", 1)]
+items = sorted(items, key=lambda x: x[0])  # 보조 키
+items = sorted(items, key=lambda x: x[1])  # 주 키
+print(items)  # 안정 정렬로 보조 키 순서 유지</code></pre>
+        </div>
+      </div>
+      <table>
+        <thead><tr><th>항목</th><th><code>list.sort()</code></th><th><code>sorted(iterable)</code></th></tr></thead>
+        <tbody>
+          <tr><td>원본 변경</td><td>변경함(in-place)</td><td>변경 안 함</td></tr>
+          <tr><td>반환값</td><td><code>None</code></td><td>새 list</td></tr>
+          <tr><td>입력 타입</td><td>list 전용</td><td>임의 iterable</td></tr>
+          <tr><td>메모리</td><td>추가 list 없음</td><td>새 list 할당</td></tr>
+          <tr><td>실전 선택</td><td>원본 갱신 의도일 때</td><td>원본 보존/함수형 파이프라인일 때</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="slide">
+      <span class="kicker">Part 2.7 · When Not to Use List</span>
+      <h2>언제 list를 버리고 다른 구조를 써야 하는가</h2>
+      <p>list의 한계를 명확히 인식해야 자료구조 선택이 닫힙니다. 핵심은 “지배 연산”입니다. 앞삭제, membership 대량 조회, top-k 유지는 list보다 다른 구조가 구조적으로 유리합니다.</p>
+      <table>
+        <thead><tr><th>워크로드</th><th>list 사용 시 문제</th><th>권장 구조</th><th>이유</th></tr></thead>
+        <tbody>
+          <tr><td>queue (앞삭제 반복)</td><td><code>pop(0)</code>가 O(n)</td><td><code>deque</code></td><td><code>popleft()</code> O(1)</td></tr>
+          <tr><td>대규모 membership</td><td><code>x in list</code> O(n)</td><td><code>set</code></td><td>평균 O(1)</td></tr>
+          <tr><td>key-value 상태 관리</td><td>인덱스 기반 검색 비용 큼</td><td><code>dict</code></td><td>평균 O(1) 조회/갱신</td></tr>
+          <tr><td>top-k 유지</td><td>반복 정렬 비용 큼</td><td><code>heapq</code></td><td>삽입/삭제 O(log n)</td></tr>
+        </tbody>
+      </table>
+      <pre><code>from collections import deque
+q = deque([1, 2, 3])
+q.popleft()   # queue workload
+
+seen: set[int] = {1, 2, 3}
+print(2 in seen)</code></pre>
+      <p class="muted">Part 5의 벤치마크(<code>list.pop(0)</code> vs <code>deque.popleft()</code>)는 이 선택 규칙의 실측 근거입니다.</p>
     </section>
 
     <section class="slide">
@@ -1718,35 +1775,25 @@ print(dict(by_label))</code></pre>
 
     <section class="slide">
       <span class="kicker">Part 3.8 · Ordered Structures (Sort/Bisect)</span>
-      <h2>정렬, 순위, 이진 탐색 기반 자료구조 패턴</h2>
-      <p>Python 정렬은 stable sort입니다. 즉 같은 키를 가진 항목의 기존 상대 순서를 보존하므로, 다단계 정렬(보조 키 → 주 키) 전략을 안전하게 적용할 수 있습니다.</p>
+      <h2>Bisect 중심의 ordered search 패턴</h2>
+      <p>정렬 자체의 의미론은 Part 2.6에서 다뤘고, 여기서는 “정렬된 리스트를 검색/삽입하는 방법”에 집중합니다. 핵심은 탐색 O(log n), 삽입 O(n)의 비대칭입니다.</p>
       <pre><code>import bisect
-
-records: list[tuple[str, float]] = [("ckpt_a", 0.912), ("ckpt_b", 0.904), ("ckpt_c", 0.921), ("ckpt_d", 0.904)]
-# 검증 지표 내림차순, 체크포인트 이름 오름차순
-records.sort(key=lambda x: (-x[1], x[0]))
-print(records)
 
 arr: list[int] = [10, 20, 20, 40, 50]
 print(bisect.bisect_left(arr, 20))   # 1
 print(bisect.bisect_right(arr, 20))  # 3
 bisect.insort(arr, 35)
 print(arr)
-
-# stable sort 다단계 예시
-items: list[tuple[str, int]] = [("b", 2), ("a", 2), ("c", 1)]
-items = sorted(items, key=lambda x: x[0])  # 보조 키
-items = sorted(items, key=lambda x: x[1])  # 주 키
-print(items)</code></pre>
+print(arr[bisect.bisect_left(arr, 35)])</code></pre>
       <table>
         <thead><tr><th>기법</th><th>복잡도</th><th>적용 시나리오</th></tr></thead>
         <tbody>
-          <tr><td><code>sort()</code></td><td>O(n log n)</td><td>배치 처리, 랭킹 산출</td></tr>
           <tr><td><code>bisect_left/right</code></td><td>O(log n)</td><td>정렬 배열 내 경계 검색</td></tr>
           <tr><td><code>insort</code></td><td>O(n)</td><td>소규모 온라인 정렬 유지</td></tr>
+          <tr><td>정렬 + bisect 혼합</td><td>정렬 O(n log n) + 탐색 O(log n)</td><td>배치 정렬 후 다중 질의</td></tr>
         </tbody>
       </table>
-      <p class="muted">검증 점수 기반 체크포인트 선택, 상위 k개 샘플 재검토, 우선 재처리 큐처럼 “순위”가 핵심인 단계에서 이 패턴이 자주 사용됩니다. 데이터가 매우 크고 삽입이 잦으면 정렬 배열보다 힙/트리 기반 구조가 더 유리할 수 있습니다.</p>
+      <p class="muted">삽입이 잦은 온라인 시나리오에서는 정렬 리스트 + bisect보다 heap/tree 계열 구조가 더 유리할 수 있습니다.</p>
     </section>
 
     <section class="slide">
