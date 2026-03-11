@@ -2337,7 +2337,36 @@ $$
     </section>
 
     <section class="slide">
-      <span class="kicker">Part 4.1 · ADT Mapping</span>
+      <span class="kicker">Part 4.1 · Quantitative Decision Model</span>
+      <h2>워크로드 혼합과 break-even: 선택을 수식으로 닫기</h2>
+      <p>구조 선택은 “어떤 연산이 많은가”를 수치화해야 설득력이 생깁니다. workload mix와 입력 스케일을 식으로 두면 코드 리뷰/실험 보고서에서 선택 이유를 재현할 수 있습니다.</p>
+      <div class="formula">
+$$
+\mathbb{E}[T_D]=\sum_{op} p_{op}\,c_D(op),\qquad
+D^\*=\arg\min_D \mathbb{E}[T_D]
+$$
+\(p_{op}\): 연산 비율, \(c_D(op)\): 구조 \(D\)에서 연산 단가
+      </div>
+      <div class="formula">
+$$
+C_{\text{list-front-pop}}(n,m)=\sum_{k=0}^{m-1}(n-k)=mn-\frac{m(m-1)}{2},\qquad
+C_{\text{deque-left-pop}}(m)=\Theta(m)
+$$
+\(m=\rho n\)이면 list front-delete는 \(\Theta(n^2)\), deque는 \(\Theta(n)\)로 분리됩니다.
+      </div>
+      <table>
+        <thead><tr><th>분석 항목</th><th>수식</th><th>의미</th></tr></thead>
+        <tbody>
+          <tr><td>혼합 비용</td><td><code>Σ p_op · c_D(op)</code></td><td>실제 파이프라인 연산 비율 반영</td></tr>
+          <tr><td>스케일 영향</td><td><code>m=ρn</code> 치환</td><td>운영 시 데이터 증가에 대한 기울기 예측</td></tr>
+          <tr><td>선택 근거</td><td><code>argmin_D E[T_D]</code></td><td>“왜 이 구조인가”를 정량 근거로 고정</td></tr>
+        </tbody>
+      </table>
+      <p class="muted">실무 규칙: 벤치마크 전에 먼저 비용 식을 쓰고, 벤치마크는 식의 계수/편차를 추정하는 절차로 사용합니다.</p>
+    </section>
+
+    <section class="slide">
+      <span class="kicker">Part 4.2 · ADT Mapping</span>
       <h2>형식 명세를 구현 매핑으로 닫기</h2>
       <p>Part 1.5의 명세 템플릿(State/Operation/Precondition/Invariant)을 실제 구현 선택으로 연결합니다. 아래 표는 “무엇을 빠르게 하려는가”와 함께 “어떻게 실패를 다룰 것인가”까지 포함합니다.</p>
       <table>
@@ -2371,7 +2400,7 @@ $$
     </section>
 
     <section class="slide">
-      <span class="kicker">Part 4.2 · Implementations</span>
+      <span class="kicker">Part 4.3 · Implementations</span>
       <h2>명세를 파이썬 구현으로 옮기기: 예외 정책과 tie-break 규칙</h2>
       <pre><code>from dataclasses import dataclass, field
 from typing import Generic, TypeVar
@@ -2423,7 +2452,7 @@ print(sorted(jobs))</code></pre>
     </section>
 
     <section class="slide">
-      <span class="kicker">Part 4.3 · Type Contracts</span>
+      <span class="kicker">Part 4.4 · Type Contracts</span>
       <h2>Type Hint를 계약 문서로 사용하는 실무 규칙</h2>
       <p>타입 힌트는 ADT 명세를 함수 경계에 고정하는 장치입니다. 구현 이후에 붙이는 주석이 아니라, 입력/출력 계약을 명시해 반례 공간을 줄이는 역할을 합니다.</p>
       <div class="formula">
@@ -2565,7 +2594,37 @@ $$
     </section>
 
     <section class="slide">
-      <span class="kicker">Part 5.2 · Multi-Workload Benchmark Cases</span>
+      <span class="kicker">Part 5.2 · Complexity Curve Fitting</span>
+      <h2>측정 곡선을 복잡도 가설에 맞춰 해석하기</h2>
+      <p>벤치마크 결과는 표만으로 끝내지 않고, 성장률 가설(선형/로그선형/제곱)을 데이터에 피팅해 해석해야 합니다. 대학원 수준 보고서는 이 과정을 통해 “속도 차이”를 “차수 차이”로 정량화합니다.</p>
+      <div class="formula">
+$$
+\log t_i = a + b\log n_i + \varepsilon_i,\qquad
+\hat{b}=\frac{\operatorname{Cov}(\log n,\log t)}{\operatorname{Var}(\log n)}
+$$
+\(\hat{b}\)는 경험적 복잡도 지수(기울기)입니다.
+      </div>
+      <div class="formula">
+$$
+\text{if }m=\rho n:\quad
+T_{\text{list front-delete}}\propto n^2,\quad
+T_{\text{deque left-delete}}\propto n
+$$
+실험에서 \(\hat{b}_{list}\approx 2,\ \hat{b}_{deque}\approx 1\)이면 이론-실측이 정합적입니다.
+      </div>
+      <table>
+        <thead><tr><th>해석 단계</th><th>질문</th><th>출력</th></tr></thead>
+        <tbody>
+          <tr><td>기울기 추정</td><td><code>log t</code> vs <code>log n</code>의 slope는?</td><td>경험적 차수 \(\hat{b}\)</td></tr>
+          <tr><td>가설 비교</td><td>선형/제곱 중 무엇이 더 맞는가?</td><td>잔차/설명력 비교</td></tr>
+          <tr><td>운영 해석</td><td>n이 10배 커질 때 시간은 몇 배인가?</td><td>스케일 업 리스크 예측</td></tr>
+        </tbody>
+      </table>
+      <p class="muted">권장: 평균 시간만 보고 결론 내리지 말고, \(n\)-sweep + log-log slope를 함께 보고 선택 근거를 고정합니다.</p>
+    </section>
+
+    <section class="slide">
+      <span class="kicker">Part 5.3 · Multi-Workload Benchmark Cases</span>
       <h2>자료구조별 실험 스펙트럼 확장: membership / priority / queue</h2>
       <p>queue 한 사례만으로는 구조 선택 원칙이 닫히지 않습니다. membership 중심, priority 중심 workload까지 함께 측정해야 선택 프레임워크가 검증됩니다.</p>
       <pre><code>import random, timeit, statistics as st, heapq
