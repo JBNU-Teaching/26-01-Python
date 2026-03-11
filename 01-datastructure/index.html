@@ -1007,6 +1007,7 @@ $$
       <span class="kicker">Part 1.4 · CPython Memory Model</span>
       <h2>CPython 객체 모델과 메모리 오버헤드</h2>
       <p>파이썬 컨테이너는 원시 값 배열이 아니라 <strong>객체 포인터 배열</strong>을 저장합니다. 따라서 “원소 수”뿐 아니라 “원소 객체 자체의 오버헤드”를 함께 고려해야 메모리 사용량을 정확히 예측할 수 있습니다.</p>
+      <p>대학원 수준에서 중요한 포인트는 메모리 해석 단위를 “값”이 아니라 “객체 그래프”로 보는 것입니다. 예를 들어 같은 정수 10,000개라도 <code>list[int]</code>, <code>array</code>, <code>ndarray</code>는 저장 모델이 달라 캐시 지역성(locality)과 순회 처리량이 크게 달라집니다. 즉 자료구조 선택은 시간복잡도뿐 아니라 메모리 계층 구조(L1/L2/cache miss)와도 직접 연결됩니다.</p>
       <div class="formula">
 $$
 M_{\text{total}}
@@ -1033,6 +1034,7 @@ print("one int    :", sys.getsizeof(0))</code></pre>
           <tr><td>tuple</td><td>불변, 상대적으로 컴팩트</td><td>키/레코드 표현에 유리</td></tr>
         </tbody>
       </table>
+      <p class="muted">실무 지침: 수치 집약 루프는 Python 객체 컨테이너(list/dict/set) 안에서 직접 연산하지 말고, 가능한 한 배열/텐서 표현으로 일찍 변환해 연산 경로를 분리하세요.</p>
     </section>
 
     <section class="slide">
@@ -1205,6 +1207,15 @@ $$
 $$
 조건/중첩이 늘어날수록 명시적 for문 + 이름 있는 함수가 리뷰와 디버깅에 유리합니다.
       </div>
+      <table>
+        <thead><tr><th>패턴</th><th>권장 표현</th><th>이유</th></tr></thead>
+        <tbody>
+          <tr><td>단일 필터 + 단일 매핑</td><td>컴프리헨션</td><td>의도를 한눈에 읽을 수 있고 중간 상태가 불필요</td></tr>
+          <tr><td>중첩 2단 이상 + 예외 처리</td><td>일반 for + named function</td><td>중간 상태 로그/테스트 포인트 확보가 쉬움</td></tr>
+          <tr><td>대용량 스트리밍 입력</td><td>generator expression</td><td>메모리 피크를 줄이고 lazy 소비 정책을 명시 가능</td></tr>
+          <tr><td>실험 리포트용 변환 파이프라인</td><td>단계별 함수 분해</td><td>재현성과 코드 리뷰 추적성이 높음</td></tr>
+        </tbody>
+      </table>
       <p class="muted">“짧은 코드”보다 “재현성과 유지보수성”을 우선해 표현 방식을 선택하는 것이 중요합니다.</p>
     </section>
 
@@ -1226,6 +1237,7 @@ tail: int
 head, *body, tail = [10, 20, 30, 40, 50]
 print(odd_sq, a, head, body, tail)</code></pre>
       <p>컴프리헨션 사용 여부는 “짧다/길다”가 아니라, <strong>인지 복잡도(cognitive complexity)</strong>와 <strong>검증 가능성(verifiability)</strong> 기준으로 결정해야 합니다. 즉, 한 줄 표현이더라도 의미가 단일 변환으로 해석되지 않으면 명시적 루프가 더 타당합니다.</p>
+      <p>또한 슬라이싱은 값 복사/뷰 여부를 구분해 써야 합니다. Python list의 슬라이스는 얕은 복사이므로 바깥 컨테이너는 분리되지만 중첩 원소 참조는 공유됩니다. 데이터 전처리에서 “부분 복사 후 수정” 패턴을 쓸 때 이 지점을 모르면 실험 상태 오염이 발생합니다.</p>
       <table>
         <thead><tr><th>평가 기준</th><th>컴프리헨션 적합</th><th>명시적 루프/함수 분리 적합</th></tr></thead>
         <tbody>
@@ -1279,6 +1291,7 @@ $$
       <span class="kicker">Part 3.1 · Dict Internals</span>
       <h2>딕셔너리 내부: 해시, 충돌, 키 설계</h2>
       <p>딕셔너리는 해시 테이블입니다. 핵심은 <strong>좋은 키</strong>와 <strong>충돌 관리</strong>입니다.</p>
+      <p>실전에서는 평균 O(1)만 외우면 부족합니다. 충돌이 늘어나는 데이터 분포, 해시 일관성이 깨진 사용자 정의 객체, 과도한 리사이즈가 동시에 발생하면 tail latency가 크게 흔들립니다. 따라서 키 설계 단계에서 불변성·동등성·해시 일관성을 명시하고, 조회 실패 정책을 함께 문서화해야 합니다.</p>
       <div class="formula">
 $$
 k_1 = k_2 \Rightarrow h(k_1)=h(k_2)\quad\text{(required)}
@@ -1301,6 +1314,15 @@ class Node:
 
 d: dict[Node, float] = {Node(1, "A"): 3.14}
 print(d[Node(1, "A")])</code></pre>
+      <table>
+        <thead><tr><th>리스크</th><th>증상</th><th>예방 규칙</th></tr></thead>
+        <tbody>
+          <tr><td>가변 객체 키 사용</td><td>삽입 후 조회 실패/불안정</td><td>키 타입은 불변 객체로 제한</td></tr>
+          <tr><td><code>__eq__</code>/<code>__hash__</code> 불일치</td><td>동등 객체가 다른 슬롯에 저장</td><td>동등성 계약을 테스트로 강제</td></tr>
+          <tr><td>적대적 충돌 분포</td><td>조회 지연 급증</td><td>키 정규화 + 분포 점검 벤치마크</td></tr>
+          <tr><td>누락 키 처리 정책 부재</td><td>간헐적 KeyError 또는 silent default</td><td><code>d[k]</code>/<code>get</code> 사용 규칙 분리</td></tr>
+        </tbody>
+      </table>
       <div class="formula">
 $$
 \text{Key design rule: immutable key } \land
@@ -1454,6 +1476,7 @@ $$
       <span class="kicker">Part 3.6 · Core Types</span>
       <h2>자료형 보강: None, 튜플 패킹/언패킹, 불변성</h2>
       <p>실제 코드에서는 값의 부재, 레코드 표현, 함수 경계 전달이 동시에 등장합니다. 이때 <code>None</code>과 튜플 규칙을 명확히 이해해야 조건 분기와 타입 계약이 안정적으로 유지됩니다.</p>
+      <p>특히 <code>None</code>은 “오류”가 아니라 “부재 상태”를 모델링하는 값이므로, 타입 힌트에서 <code>T | None</code> 형태로 의도를 드러내는 것이 중요합니다. 또한 튜플은 불변 레코드로서 함수 경계에서 계약 안정성을 높여주며, dict key로도 사용 가능해 캐시/메모이제이션 설계에 직접 연결됩니다.</p>
       <div class="cols-2">
         <div class="card">
           <h3>None과 선택 값</h3>
@@ -1920,11 +1943,18 @@ print(s.pop(), s.pop())</code></pre>
       <span class="kicker">Part 4.4 · DS Selection Framework</span>
       <h2>자료구조 선택 프레임워크: 비용 함수 기반 의사결정</h2>
       <p>실험 파이프라인에서 가장 어려운 결정 중 하나는 “어떤 자료구조를 선택할지”입니다. 아래처럼 연산 비율과 메모리 제약을 비용 함수로 모델링하면 선택 근거를 명확히 제시할 수 있습니다.</p>
+      <p>대학원 연구에서는 성능만으로 선택하면 부족합니다. 실패 확률(예: 키 누락, 상태 공유 오염), 재현성 요구(순서 안정성), 디버깅 비용(관측 가능성)을 함께 비용 항으로 넣어야 실험 반복 시 품질 편차를 줄일 수 있습니다.</p>
       <div class="formula">
 $$
 C(D)=\sum_{op\in\mathcal{O}} w_{op}\,T_D(op) + \lambda M_D
 $$
 \(w_{op}\): 연산 빈도 가중치, \(T_D(op)\): 자료구조 \(D\)에서의 비용, \(M_D\): 메모리 비용
+      </div>
+      <div class="formula">
+$$
+C'(D)=C(D)+\mu R_D+\nu G_D
+$$
+\(R_D\): 실패 리스크, \(G_D\): 가독성/검증 비용. 즉 “빠른 구조”와 “검증 가능한 구조”의 균형이 필요합니다.
       </div>
       <table>
         <thead><tr><th>시나리오</th><th>주요 연산</th><th>우선 후보</th><th>근거</th></tr></thead>
@@ -1935,12 +1965,31 @@ $$
           <tr><td>중복 토큰 제거</td><td>membership/add</td><td>set</td><td>중복 제거 + 빠른 검사</td></tr>
         </tbody>
       </table>
+      <div class="cols-2">
+        <div class="card">
+          <h3>의사결정 절차</h3>
+          <ol>
+            <li>핵심 연산 빈도를 계량화한다.</li>
+            <li>실패 모드(예외/무시/기본값)를 명시한다.</li>
+            <li>재현성 요구(순서/불변성)를 계약으로 고정한다.</li>
+          </ol>
+        </div>
+        <div class="card">
+          <h3>평가 산출물</h3>
+          <ul>
+            <li>후보 2~3개 구조의 비용 함수 비교표</li>
+            <li>경계 입력(빈/대형/편향) 벤치마크 결과</li>
+            <li>코드 리뷰 체크리스트(복사/키/순회 정책)</li>
+          </ul>
+        </div>
+      </div>
     </section>
 
     <section class="slide">
       <span class="kicker">Part 5 · Complexity Lab</span>
       <h2>실험으로 검증하는 성능: 이론 vs 실제</h2>
       <p>같은 O-표기라도 데이터 크기와 연산 위치가 다르면 체감 속도는 크게 달라집니다. 아래 실험은 “앞쪽 삭제”라는 특정 연산이 구조 선택에 얼마나 큰 차이를 만드는지 보여줍니다.</p>
+      <p>연구 코드에서는 “한 번 더 빨라졌다”가 아니라 “입력 분포가 바뀌어도 안정적으로 빠른가”가 핵심입니다. 따라서 실험은 단일 평균값이 아닌 분포(최소/최대/분산)와 함께 보고, 코드 경로(연산 위치/캐시 워밍/객체 생성량)를 함께 기록해야 해석 오류를 줄일 수 있습니다.</p>
       <pre><code>import time
 from collections import deque
 
@@ -1974,6 +2023,7 @@ Big-O는 증가율을 설명하고, 실제 성능은 상수항/캐시/런타임 
           <tr><td>실험 재현성</td><td>동일 입력 생성, warm-up, 반복 측정으로 편차 통제</td></tr>
         </tbody>
       </table>
+      <p class="muted">해석 규칙: “이론과 측정이 다르다”가 아니라 “이론은 증가율, 측정은 상수항과 시스템 효과를 포함한다”로 분리해 읽어야 정확합니다.</p>
     </section>
 
     <section class="slide">
@@ -2015,6 +2065,7 @@ $$
       <span class="kicker">Part 6 · Pythonic High-Level</span>
       <h2>심화 문법과 자료구조 결합</h2>
       <p>고급 문법은 “코드를 단축하는 것”이 목적이 아니라, 자료구조의 형태를 코드에 명시적으로 반영해 오류 가능성을 줄이는 데 목적이 있습니다.</p>
+      <p>특히 Python 3.10의 패턴 매칭은 중첩 자료구조 분기를 선언적으로 표현할 수 있어 파싱/디스패치 코드의 의도를 크게 개선합니다. 다만 분기 규칙이 암묵적으로 늘어나면 디버깅 난이도가 올라가므로, “분기 표(입력 패턴 → 출력 동작)”를 함께 유지하는 것이 안전합니다.</p>
       <div class="cols-2">
         <div class="card">
           <h3>패턴 매칭</h3>
@@ -2047,6 +2098,14 @@ print(flt)
 print(mp)</code></pre>
         </div>
       </div>
+      <table>
+        <thead><tr><th>문법 도구</th><th>강점</th><th>남용 시 리스크</th></tr></thead>
+        <tbody>
+          <tr><td><code>match/case</code></td><td>구조 기반 분기를 명시적으로 표현</td><td>케이스 확장 시 누락 분기 디버깅 난이도 증가</td></tr>
+          <tr><td><code>map/filter/reduce</code></td><td>변환 파이프라인을 짧게 기술</td><td>람다 중첩 시 중간 상태 관측이 어려움</td></tr>
+          <tr><td>컴프리헨션</td><td>필터+변환의 선언적 표현</td><td>로직 복잡도 증가 시 가독성 급락</td></tr>
+        </tbody>
+      </table>
       <p class="muted">함수형 스타일은 강력하지만, 과도한 람다 중첩은 디버깅 비용을 증가시킵니다.</p>
       <div class="formula">
 $$
@@ -2170,6 +2229,15 @@ print(has_dup_k([1, 2, 3, 1], 3))
 print(has_dup_k([1, 2, 3, 1], 2))</code></pre>
         </div>
       </div>
+      <table>
+        <thead><tr><th>패턴</th><th>핵심 자료구조</th><th>지배 연산</th><th>평균 비용</th></tr></thead>
+        <tbody>
+          <tr><td>BFS</td><td><code>deque</code> + <code>set</code></td><td><code>popleft</code>, membership</td><td>O(V+E)</td></tr>
+          <tr><td>Top-K</td><td><code>heapq</code></td><td><code>heappush/pop</code></td><td>O(n log k)</td></tr>
+          <tr><td>빈도 분석</td><td><code>Counter</code></td><td>키 누적 카운트</td><td>O(n)</td></tr>
+          <tr><td>슬라이딩 윈도우</td><td><code>dict</code></td><td>최근 위치 조회/갱신</td><td>O(n)</td></tr>
+        </tbody>
+      </table>
       <p class="muted">실무에서는 알고리즘 이름보다 “주연산이 무엇인지”를 먼저 파악하면 구현 선택이 빨라집니다. 예: 방문 체크는 set, 최근성 관리는 deque, top-k는 heap.</p>
     </section>
 
@@ -2359,6 +2427,15 @@ new_cfg: tuple[str, int, float] = (cfg[0], 64, cfg[2])  # 원본 보존
 print(cfg, new_cfg)</code></pre>
         </div>
       </div>
+      <table>
+        <thead><tr><th>공유 방식</th><th>장점</th><th>주의점</th></tr></thead>
+        <tbody>
+          <tr><td>가변 dict 직접 공유</td><td>구현 단순</td><td>read-modify-write 경쟁으로 상태 오염 가능</td></tr>
+          <tr><td>불변 tuple/dataclass 공유</td><td>레이스 위험 감소, 스냅샷 추적 용이</td><td>갱신 시 새 객체 생성 비용</td></tr>
+          <tr><td>복사 후 로컬 수정</td><td>모듈 경계 독립성 확보</td><td>깊은 복사 비용/지연 고려 필요</td></tr>
+          <tr><td>락/큐 기반 동기화</td><td>일관성 강제 가능</td><td>병렬성 감소 및 교착 상태 관리 필요</td></tr>
+        </tbody>
+      </table>
       <p class="muted">CPython GIL이 있다고 해서 논리적 race가 사라지지 않습니다. 연산의 원자성, 데이터 불변성, 동기화 경계를 별도로 설계해야 합니다.</p>
     </section>
 
@@ -2389,6 +2466,15 @@ $$
 \forall xs:\ \text{pop\_all}(\text{push\_all}(xs))=\operatorname{reverse}(xs)
 $$
       </div>
+      <table>
+        <thead><tr><th>테스트 계층</th><th>무엇을 검증하나</th><th>권장 예시</th></tr></thead>
+        <tbody>
+          <tr><td>예제 기반(unit)</td><td>명세된 대표 시나리오</td><td>빈 구조 pop, 단일 원소 push/pop, 경계 인덱스 접근</td></tr>
+          <tr><td>속성 기반(property)</td><td>일반 법칙(invariant) 유지</td><td>LIFO/FIFO, 정렬 후 순서성, 집합 연산 항등식</td></tr>
+          <tr><td>메타모픽 테스트</td><td>입력 변환 전후 관계</td><td>중복 제거 후 재적용 idempotence, 순열 입력 동일 결과</td></tr>
+          <tr><td>성능 회귀 테스트</td><td>복잡도 가정의 실제 유지</td><td>입력 크기 증가 시 tail latency 급등 여부</td></tr>
+        </tbody>
+      </table>
       <p class="muted">다음 Part 7에서는 이 테스트 규칙들이 실제로 어떤 객체 의미론(참조, 복사, iterator 소비, 상태 생명주기)에서 유도되는지를 본개념으로 연결해 정리합니다.</p>
     </section>
 
@@ -2451,6 +2537,7 @@ arr = [x for x in arr if x % 2 == 1]</code></pre>
     <section class="slide">
       <span class="kicker">Part 7.1 · Semantics Matrix</span>
       <h2>핵심 의미론 매트릭스: 개념, 증상, 설계 규칙</h2>
+      <p>아래 표는 “개념 설명”이 아니라 “리뷰/디버깅 실행 도구”입니다. 각 항목을 코드 증상과 연결해 보면, 단순 문법 실수가 아니라 객체 모델 이해 부족에서 발생하는 결함을 체계적으로 줄일 수 있습니다.</p>
       <table>
         <thead><tr><th>개념</th><th>실전에서 보이는 증상</th><th>설계 규칙</th></tr></thead>
         <tbody>
@@ -2466,6 +2553,11 @@ arr = [x for x in arr if x % 2 == 1]</code></pre>
           <tr><td>late binding</td><td>람다가 마지막 루프 변수만 참조</td><td><code>lambda x, i=i: ...</code>로 캡처 고정</td></tr>
         </tbody>
       </table>
+      <div class="formula">
+$$
+\text{Symptom} \rightarrow \text{Semantic cause} \rightarrow \text{Design rule} \rightarrow \text{Regression test}
+$$
+      </div>
       <p class="muted">이 매트릭스는 “버그 체크리스트”가 아니라 자료구조 의미론을 코드 리뷰 항목으로 변환한 기준표입니다.</p>
     </section>
 
