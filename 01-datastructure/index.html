@@ -1464,8 +1464,33 @@ $$
     </section>
 
     <section class="slide">
+      <span class="kicker">Part 2.3.1 · Slice Rulebook</span>
+      <h2>Slice semantics를 규칙으로 외우기</h2>
+      <p>슬라이스는 “부분 보기”가 아니라 “규칙 기반 복사/재조합”입니다. 단일 인덱스와 슬라이스의 실패 정책을 분리해서 기억하면 경계 버그가 크게 줄어듭니다.</p>
+      <table>
+        <thead><tr><th>규칙</th><th>의미</th><th>실패/주의</th></tr></thead>
+        <tbody>
+          <tr><td><code>a[i]</code></td><td>단일 원소 접근</td><td>범위를 벗어나면 <code>IndexError</code></td></tr>
+          <tr><td><code>a[i:j]</code></td><td>반열린 구간 복사 [i, j)</td><td>범위를 벗어나도 clipping</td></tr>
+          <tr><td><code>a[i:j:s]</code></td><td>stride 복사</td><td><code>s&lt;0</code>이면 역방향, <code>s=0</code>은 오류</td></tr>
+          <tr><td><code>a[::-1]</code></td><td>역순 새 리스트 생성</td><td>원본은 그대로 유지</td></tr>
+          <tr><td><code>a[i:j] = t</code></td><td>구간 교체</td><td>길이 변화 가능</td></tr>
+          <tr><td><code>a[i:j:s] = t</code></td><td>확장 슬라이스 교체</td><td><code>s!=1</code>이면 길이 일치 필요</td></tr>
+          <tr><td><code>del a[i:j]</code></td><td>구간 삭제</td><td>후속 인덱스가 당겨짐</td></tr>
+        </tbody>
+      </table>
+      <pre><code>arr = [0, 1, 2, 3, 4, 5, 6]
+print(arr[100:200])   # []
+print(arr[5:1:-2])    # [5, 3]
+
+arr[2:5] = [20, 30]
+print(arr)            # [0, 1, 20, 30, 5, 6]</code></pre>
+      <p class="muted">요약: 단일 인덱스는 strict, 슬라이스는 tolerant(clipping)입니다.</p>
+    </section>
+
+    <section class="slide">
       <span class="kicker">Part 2.4 · Aliasing, Repetition, and Shallow Copy</span>
-      <h2>복사가 보이지만 공유가 남아 있는 경우</h2>
+      <h2>왜 <code>[[0]*3]*4</code>가 깨지는가: 복사가 아니라 참조 반복</h2>
       <p>list 의미론에서 가장 중요한 함정은 참조 공유(aliasing)입니다. <code>b=a</code>, <code>a[:]</code>, <code>list(a)</code>, <code>deepcopy(a)</code>는 겉보기는 비슷하지만 공유 수준이 다릅니다.</p>
       <div class="cols-2">
         <div class="card">
@@ -1612,6 +1637,25 @@ print(items)  # 안정 정렬로 보조 키 순서 유지</code></pre>
     </section>
 
     <section class="slide">
+      <span class="kicker">Part 2.6.1 · Stable Sort in Practice</span>
+      <h2>stable sort가 연구 코드에서 중요한 이유</h2>
+      <p>stable sort는 단순 구현 디테일이 아니라 순서 계약입니다. 동점 처리 규칙을 단계별 정렬로 고정할 수 있어 실험 결과와 보고서가 재현 가능해집니다.</p>
+      <pre><code>records: list[tuple[str, int]] = [("u2", 90), ("u1", 90), ("u3", 80)]
+records = sorted(records, key=lambda x: x[0])               # 보조 키(id)
+records = sorted(records, key=lambda x: x[1], reverse=True) # 주 키(score)
+print(records)</code></pre>
+      <table>
+        <thead><tr><th>상황</th><th>stable sort가 주는 이점</th><th>실무 포인트</th></tr></thead>
+        <tbody>
+          <tr><td>동점 점수 랭킹</td><td>보조 키 순서 유지</td><td>tie-break를 코드에 명시</td></tr>
+          <tr><td>우선순위 큐 전처리</td><td>입력 순서 보존 가능</td><td>감사/디버깅 로그 해석 용이</td></tr>
+          <tr><td>반복 정렬 파이프라인</td><td>계층형 정렬 규칙 구성</td><td>보조 키 먼저, 주 키 나중에 적용</td></tr>
+        </tbody>
+      </table>
+      <p class="muted">주의: <code>list.sort()</code>는 in-place이므로 alias가 있으면 외부에서도 순서 변화가 관측됩니다.</p>
+    </section>
+
+    <section class="slide">
       <span class="kicker">Part 2.7 · When Not to Use List</span>
       <h2>언제 list를 버리고 다른 구조를 써야 하는가</h2>
       <p>list의 한계를 명확히 인식해야 자료구조 선택이 닫힙니다. 핵심은 “지배 연산”입니다. 앞삭제, membership 대량 조회, top-k 유지는 list보다 다른 구조가 구조적으로 유리합니다.</p>
@@ -1631,6 +1675,31 @@ q.popleft()   # queue workload
 seen: set[int] = {1, 2, 3}
 print(2 in seen)</code></pre>
       <p class="muted">Part 5의 벤치마크(<code>list.pop(0)</code> vs <code>deque.popleft()</code>)는 이 선택 규칙의 실측 근거입니다.</p>
+    </section>
+
+    <section class="slide">
+      <span class="kicker">Part 2.7.1 · Decision Checklist</span>
+      <h2>List 선택/비선택 체크리스트</h2>
+      <div class="cols-2">
+        <div class="card">
+          <h3>list를 써도 되는 경우</h3>
+          <ul>
+            <li><code>append</code> 중심 버퍼</li>
+            <li>순차 접근/순회 중심 처리</li>
+            <li>인덱스 기반 갱신이 핵심</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>list를 버려야 하는 경우</h3>
+          <ul>
+            <li>앞삭제/앞삽입 반복: <code>deque</code></li>
+            <li>membership 대량 검사: <code>set</code></li>
+            <li>key-value 상태 관리: <code>dict</code></li>
+            <li>top-k/우선순위: <code>heapq</code></li>
+          </ul>
+        </div>
+      </div>
+      <p class="muted">결론: list는 기본값이지만 만능값은 아닙니다. 지배 연산을 먼저 고르고 구조를 선택합니다.</p>
     </section>
 
     <section class="slide">
@@ -1718,6 +1787,7 @@ print(list(w))                # [11, 12, 13]</code></pre>
           <tr><td>랜덤 접근</td><td>O(1)</td><td>상대적으로 비효율</td><td>배열형 접근은 list 우세</td></tr>
         </tbody>
       </table>
+      <p class="muted">이 선택 기준은 Part 5 벤치마크(<code>list.pop(0)</code> vs <code>deque.popleft()</code>)에서 실측으로 다시 검증합니다.</p>
     </section>
 
     <section class="slide">
@@ -1747,6 +1817,28 @@ print(heapq.heappop(h))</code></pre>
           <tr><td>arbitrary delete</td><td>비효율적</td><td>빈번하면 다른 구조 검토</td></tr>
         </tbody>
       </table>
+    </section>
+
+    <section class="slide">
+      <span class="kicker">Part 2.10.1 · Heap Contract</span>
+      <h2>heap은 정렬 구조가 아니라 우선순위 구조다</h2>
+      <p>heap은 전체 순서를 보장하지 않고 root-min 성질만 보장합니다. 따라서 “전체 정렬 결과”가 필요하면 sort, “반복 top-1/top-k 추출”이 필요하면 heap이 적합합니다.</p>
+      <pre><code>import heapq
+
+h: list[int] = [7, 3, 9, 1, 5]
+heapq.heapify(h)
+print(h)          # 내부 배열은 부분 순서만 만족
+print(h[0])       # 최소값만 즉시 보장</code></pre>
+      <table>
+        <thead><tr><th>요구사항</th><th>heap 적합성</th><th>코멘트</th></tr></thead>
+        <tbody>
+          <tr><td>최소값 반복 추출</td><td>높음</td><td><code>heappop</code> O(log n)</td></tr>
+          <tr><td>top-k 추출</td><td>높음</td><td><code>nlargest/nsmallest</code>로 확장 가능</td></tr>
+          <tr><td>전체 정렬 상태 유지</td><td>낮음</td><td>heap 내부 배열은 완전 정렬이 아님</td></tr>
+          <tr><td>임의 원소 업데이트/삭제</td><td>낮음</td><td>재삽입(lazy deletion) 또는 다른 구조 검토</td></tr>
+        </tbody>
+      </table>
+      <p class="muted">tie-break가 필요하면 <code>(priority, seq, item)</code> 형태를 사용해 비교 가능성과 결정성을 함께 확보합니다.</p>
     </section>
 
     <section class="slide">
@@ -2034,30 +2126,99 @@ print(dict(bucket))</code></pre>
 a: dict[str, int] = {"x": 1, "y": 2}
 b: dict[str, int] = {"y": 99, "z": 3}
 print(a | b)  # {'x':1, 'y':99, 'z':3}</code></pre>
-      <p class="muted">패턴 선택 기준: 1) 선언형 규칙이면 comprehension, 2) 누적/집계면 defaultdict·Counter, 3) 환경 계층 합성이면 merge(<code>|</code>)를 우선 사용합니다.</p>
+      <p class="muted">패턴 선택 기준: 1) 선언형 규칙이면 comprehension, 2) 누적/집계면 defaultdict·Counter, 3) 계층형 조회 정책이면 ChainMap, 4) 단순 결과 병합이면 <code>|</code>.</p>
     </section>
 
     <section class="slide">
-      <span class="kicker">Part 3.5.1 · Ordered Mapping Operations</span>
-      <h2>OrderedDict는 언제 필요한가</h2>
-      <p>Python 3.10에서 일반 <code>dict</code>도 삽입 순서를 보존합니다. 따라서 단순 순서 보존 목적만으로는 <code>OrderedDict</code>가 필요하지 않습니다. 다만 순서 조작 연산이 핵심인 경우는 <code>OrderedDict</code>가 더 적합합니다.</p>
-      <pre><code>from collections import OrderedDict
-
-od = OrderedDict([("a", 1), ("b", 2), ("c", 3)])
-od.move_to_end("a")           # 순서 재배치
-last = od.popitem(last=True)  # 오른쪽 pop
-first = od.popitem(last=False)# 왼쪽 pop
-print(list(od.items()), last, first)</code></pre>
+      <span class="kicker">Part 3.5.1 · Dict Family Guide</span>
+      <h2>dict family 선택 가이드: dict / OrderedDict / defaultdict / Counter / ChainMap</h2>
+      <p>모두 dict-like이지만 계약이 다릅니다. 핵심은 “없음 처리”, “순서 조작”, “빈도 모델”, “계층형 조회” 중 무엇을 주연산으로 두는가입니다.</p>
       <table>
-        <thead><tr><th>요구사항</th><th>dict</th><th>OrderedDict</th><th>권장 선택</th></tr></thead>
+        <thead><tr><th>구조</th><th>핵심 목적</th><th>대표 메서드/연산</th><th>언제 쓰는가</th><th>피해야 할 경우</th></tr></thead>
         <tbody>
-          <tr><td>삽입 순서 유지</td><td>지원</td><td>지원</td><td>기본은 dict</td></tr>
-          <tr><td>항목 재배치(<code>move_to_end</code>)</td><td>제한적</td><td>직접 지원</td><td>OrderedDict</td></tr>
-          <tr><td>양끝 pop(<code>popitem(last=...)</code>)</td><td>오른쪽 중심</td><td>양방향 제어</td><td>OrderedDict</td></tr>
-          <tr><td>LRU-like 순서 갱신</td><td>수동 구현</td><td>표현이 명확</td><td>OrderedDict</td></tr>
+          <tr><td><code>dict</code></td><td>기본 key-value 상태</td><td><code>get</code>, <code>pop</code>, <code>|</code></td><td>대부분의 일반 매핑</td><td>순서 재배치가 주연산일 때</td></tr>
+          <tr><td><code>OrderedDict</code></td><td>순서 조작</td><td><code>move_to_end</code>, <code>popitem(last=...)</code></td><td>LRU-like 정책, 양끝 pop 제어</td><td>단순 삽입 순서 보존만 필요할 때</td></tr>
+          <tr><td><code>defaultdict</code></td><td>없으면 기본 컨테이너 생성</td><td><code>defaultdict(list/int/set)</code></td><td>그룹화/누적 루프</td><td>키 누락을 버그로 잡아야 할 때</td></tr>
+          <tr><td><code>Counter</code></td><td>빈도(multiset) 모델</td><td><code>most_common</code>, <code>+</code>, <code>-</code></td><td>토큰/클래스 분포 분석, top-k 빈도</td><td>일반 상태 저장을 혼합할 때</td></tr>
+          <tr><td><code>ChainMap</code></td><td>계층형 조회 뷰</td><td><code>ChainMap(a,b,c)</code></td><td>runtime &gt; project &gt; default 우선순위</td><td>즉시 materialized merge가 필요할 때</td></tr>
         </tbody>
       </table>
-      <p class="muted">요약: “순서가 보이기만 하면” dict, “순서를 연산해야 하면” OrderedDict를 선택합니다.</p>
+      <p class="muted">요약: 이 구조들은 API가 유사해 보여도 실패 정책과 의미 계약이 다르므로, 데이터 모양이 아니라 연산 정책으로 선택합니다.</p>
+    </section>
+
+    <section class="slide">
+      <span class="kicker">Part 3.5.2 · Missing-Key Policy</span>
+      <h2><code>defaultdict</code> vs <code>setdefault</code></h2>
+      <p><code>setdefault</code>는 기본 dict에서 국소 패턴을 짧게 쓰는 도구이고, <code>defaultdict</code>는 자료구조 수준에서 누적/그룹화 의도를 선언하는 선택입니다.</p>
+      <pre><code>from collections import defaultdict
+
+pairs: list[tuple[str, int]] = [("train", 128), ("train", 256), ("val", 64)]
+
+g1: dict[str, list[int]] = {}
+for k, v in pairs:
+    g1.setdefault(k, []).append(v)
+
+g2: defaultdict[str, list[int]] = defaultdict(list)
+for k, v in pairs:
+    g2[k].append(v)
+
+print(g1)
+print(dict(g2))</code></pre>
+      <table>
+        <thead><tr><th>선택지</th><th>장점</th><th>주의</th></tr></thead>
+        <tbody>
+          <tr><td><code>setdefault</code></td><td>의존성 추가 없이 기존 dict에서 즉시 사용</td><td>루프가 길어지면 의도가 묻히기 쉬움</td></tr>
+          <tr><td><code>defaultdict</code></td><td>누적/그룹화 정책이 타입 선언에 드러남</td><td>키 누락을 예외로 감지하는 경로에는 부적합</td></tr>
+        </tbody>
+      </table>
+      <p class="muted">정리: <code>setdefault</code>는 패턴, <code>defaultdict</code>는 구조 선택입니다.</p>
+    </section>
+
+    <section class="slide">
+      <span class="kicker">Part 3.5.3 · Counter as Multiset</span>
+      <h2>Counter는 “빈도 dict”가 아니라 multiset이다</h2>
+      <p>Counter의 장점은 기본값 0과 연산 의미입니다. 단순 count dict보다 intent가 분명하고, top-k/비교/차집합 작업에서 코드가 짧고 안전해집니다.</p>
+      <pre><code>from collections import Counter
+
+tokens: list[str] = ["a", "b", "a", "c", "b", "a"]
+cnt = Counter(tokens)
+print(cnt)                 # Counter({'a': 3, 'b': 2, 'c': 1})
+print(cnt.most_common(2))  # [('a', 3), ('b', 2)]</code></pre>
+      <table>
+        <thead><tr><th>워크로드</th><th>일반 dict</th><th><code>Counter</code></th></tr></thead>
+        <tbody>
+          <tr><td>빈도 누적</td><td>초기화 분기 필요</td><td>0 기본값으로 즉시 누적</td></tr>
+          <tr><td>top-k 빈도</td><td>별도 정렬 코드 필요</td><td><code>most_common(k)</code> 지원</td></tr>
+          <tr><td>multiset 연산</td><td>직접 구현 필요</td><td><code>+</code>, <code>-</code>, <code>&amp;</code>, <code>|</code> 의미 제공</td></tr>
+        </tbody>
+      </table>
+      <p class="muted">빈도 중심 workload에서는 dict보다 Counter가 설계 의도를 더 정확히 드러냅니다.</p>
+    </section>
+
+    <section class="slide">
+      <span class="kicker">Part 3.5.4 · ChainMap for Layered Config</span>
+      <h2>ChainMap: merge 결과가 아니라 우선순위가 있는 조회 경로</h2>
+      <p><code>ChainMap</code>은 여러 dict를 복사 병합하지 않고 겹친 조회 뷰를 만듭니다. 설정 우선순위를 코드 구조로 남길 수 있어 실험 환경 관리에 유용합니다.</p>
+      <pre><code>from collections import ChainMap
+
+defaults = {"batch_size": 32, "lr": 1e-3}
+project  = {"lr": 5e-4}
+runtime  = {"device": "cuda"}
+
+cfg = ChainMap(runtime, project, defaults)
+print(cfg["lr"])          # 5e-4
+print(cfg["batch_size"])  # 32
+
+cfg["batch_size"] = 64    # 맨 앞(runtime)에 기록</code></pre>
+      <table>
+        <thead><tr><th>질문</th><th>ChainMap 답</th><th>실무 판단</th></tr></thead>
+        <tbody>
+          <tr><td>조회 우선순위</td><td>앞 dict부터 탐색</td><td><code>runtime &gt; project &gt; defaults</code> 명시 가능</td></tr>
+          <tr><td>메모리/복사 비용</td><td>materialize 없이 뷰 구성</td><td>큰 설정 dict 계층에 유리</td></tr>
+          <tr><td>수정 반영 위치</td><td>첫 dict에 기록</td><td>영구 병합이 필요하면 <code>|</code> 사용</td></tr>
+        </tbody>
+      </table>
+      <p class="muted">요약: ChainMap은 “병합 결과물”이 아니라 “lookup policy”를 표현하는 도구입니다.</p>
     </section>
 
     <section class="slide">
