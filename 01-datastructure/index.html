@@ -1193,7 +1193,100 @@ for step in range(1000):
     </section>
 
     <section class="slide">
-      <span class="kicker">Part 2.2 · Sequence Semantics</span>
+      <span class="kicker">Part 2.2 · List API Semantics</span>
+      <h2>List 기본 함수의 동작 원리: in-place, 반환값, 비용</h2>
+      <p>실전에서 가장 많은 버그는 메서드 의미를 혼동할 때 발생합니다. 특히 <code>sort</code>, <code>append</code>, <code>extend</code>는 대부분 <strong>in-place 연산</strong>이며 반환값이 <code>None</code>입니다.</p>
+      <pre><code>x: list[int] = [3, 1, 2]
+y = x.sort()          # in-place
+z = sorted(x)         # new list
+print(x, y, z)        # [1,2,3], None, [1,2,3]
+
+a: list[int] = [1, 2]
+a.append([3, 4])      # [1,2,[3,4]]
+b: list[int] = [1, 2]
+b.extend([3, 4])      # [1,2,3,4]
+print(a, b)</code></pre>
+      <table>
+        <thead><tr><th>메서드</th><th>의미</th><th>반환</th><th>복잡도(평균)</th></tr></thead>
+        <tbody>
+          <tr><td><code>append(x)</code></td><td>끝에 1개 추가</td><td><code>None</code></td><td>amortized O(1)</td></tr>
+          <tr><td><code>extend(it)</code></td><td>이터러블 원소 확장</td><td><code>None</code></td><td>O(k)</td></tr>
+          <tr><td><code>insert(i,x)</code></td><td>i 위치 삽입</td><td><code>None</code></td><td>O(n)</td></tr>
+          <tr><td><code>pop()</code>/<code>pop(i)</code></td><td>삭제 + 반환</td><td>원소</td><td>끝 O(1), 중간 O(n)</td></tr>
+          <tr><td><code>remove(x)</code></td><td>첫 일치 원소 삭제</td><td><code>None</code></td><td>O(n)</td></tr>
+          <tr><td><code>sort(key=...)</code></td><td>Timsort 안정 정렬</td><td><code>None</code></td><td>O(n log n)</td></tr>
+          <tr><td><code>reverse()</code></td><td>제자리 뒤집기</td><td><code>None</code></td><td>O(n)</td></tr>
+        </tbody>
+      </table>
+      <p class="muted">딥러닝 로그/체크포인트 정렬에서는 <code>sorted(records, key=...)</code>로 원본 보존 여부를 명시하는 것이 안전합니다.</p>
+    </section>
+
+    <section class="slide">
+      <span class="kicker">Part 2.3 · Indexing & Slicing</span>
+      <h2>Indexing/Slicing: 경계조건과 복사 의미론</h2>
+      <p>슬라이싱은 “부분조회”이면서 동시에 “새 리스트 생성”입니다. 인덱스 범위와 step 방향을 정확히 이해하지 못하면 성능 저하와 상태 오염이 동시에 발생합니다.</p>
+      <pre><code>arr: list[int] = [0, 1, 2, 3, 4, 5, 6]
+print(arr[1:5])      # [1,2,3,4]
+print(arr[:-1])      # 마지막 제외
+print(arr[::2])      # 짝수 인덱스 샘플링
+print(arr[::-1])     # 역순 복사
+
+arr[2:5] = [20, 30]  # 슬라이스 대입(길이 변경 가능)
+print(arr)</code></pre>
+      <div class="formula">
+$$
+a[i:j:s]\ \text{creates a new list of length}\ \Theta\!\left(\frac{j-i}{s}\right)
+$$
+      </div>
+      <table>
+        <thead><tr><th>패턴</th><th>의미</th><th>주의점</th></tr></thead>
+        <tbody>
+          <tr><td><code>a[-1]</code></td><td>마지막 원소</td><td>빈 리스트면 <code>IndexError</code></td></tr>
+          <tr><td><code>a[i:j]</code></td><td>반열린 구간 [i, j)</td><td>j는 포함되지 않음</td></tr>
+          <tr><td><code>a[::k]</code></td><td>stride 샘플링</td><td>큰 데이터에서 복사 비용 큼</td></tr>
+          <tr><td><code>a[::-1]</code></td><td>역순 복사</td><td>in-place 역순은 <code>reverse()</code></td></tr>
+          <tr><td><code>a[:]</code></td><td>shallow copy</td><td>중첩 원소는 여전히 공유</td></tr>
+        </tbody>
+      </table>
+      <p class="muted">배치 분할(<code>ids[start:end]</code>)은 간단하지만 대규모 반복에서는 복사 비용이 누적됩니다. 스트리밍이면 iterator 기반 접근을 검토하세요.</p>
+    </section>
+
+    <section class="slide">
+      <span class="kicker">Part 2.4 · Comprehension & Lazy Evaluation</span>
+      <h2>List Comprehension, Generator, zip(strict=True)</h2>
+      <p>컴프리헨션은 필터+변환이 단순할 때 강력합니다. 단계가 길어지면 named function으로 분해해야 검증 가능성이 유지됩니다. 또한 generator는 메모리를 줄이지만 1회 소비 객체라는 점을 반드시 고려해야 합니다.</p>
+      <div class="cols-2">
+        <div class="card">
+          <h3>Comprehension</h3>
+          <pre><code>nums: list[int] = list(range(10))
+sq_even: list[int] = [x * x for x in nums if x % 2 == 0]
+label: dict[int, str] = {x: ("even" if x % 2 == 0 else "odd") for x in nums}
+print(sq_even, label[3])</code></pre>
+        </div>
+        <div class="card">
+          <h3>Generator + strict zip</h3>
+          <pre><code>g = (x * x for x in range(5))
+print(list(g))     # consume once
+print(list(g))     # []
+
+feat = [1, 2, 3]
+target = [10, 20]
+# list(zip(feat, target, strict=True))  # ValueError</code></pre>
+        </div>
+      </div>
+      <table>
+        <thead><tr><th>선택 기준</th><th>권장</th><th>이유</th></tr></thead>
+        <tbody>
+          <tr><td>단일 단계 필터/매핑</td><td>comprehension</td><td>의도 압축 + 가독성 유지</td></tr>
+          <tr><td>다단계 분기/예외 처리</td><td>for + 함수 분해</td><td>중간 상태 검증 용이</td></tr>
+          <tr><td>대용량 스트리밍</td><td>generator</td><td>메모리 피크 감소</td></tr>
+          <tr><td>feature/label 정합성 검증</td><td><code>zip(..., strict=True)</code></td><td>길이 불일치 조기 탐지</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="slide">
+      <span class="kicker">Part 2.5 · Sequence Semantics</span>
       <h2>시퀀스 의미론: aliasing, 복사 깊이, iterator 소비</h2>
       <p>대학원 강의에서 중요한 지점은 “어떤 문법을 쓰는가”가 아니라 “객체 참조가 언제 공유되는가”입니다. 시퀀스 버그의 대부분은 참조 의미론과 소비 모델을 혼동할 때 발생합니다.</p>
       <div class="cols-2">
