@@ -1025,7 +1025,7 @@ $$
         <line x1="784" y1="105" x2="828" y2="105" stroke="#466083" stroke-width="4"/>
         <polygon points="828,105 814,97 814,113" fill="#466083"/>
       </svg>
-      <p class="figure-caption">강의 전체 프레임: 문제를 ADT로 추상화한 뒤, 구현 구조를 선택하고 마지막에 정확성/복잡도/재현성을 검증합니다.</p>
+      <p class="figure-caption">전체 흐름: 문제를 ADT로 추상화한 뒤, 구현 구조를 선택하고 마지막에 정확성/복잡도/재현성을 검증합니다.</p>
       <div class="cols-2">
         <div class="card">
           <h3>ADT (추상 자료형)</h3>
@@ -1128,7 +1128,7 @@ $$
           <p>상환 O(1)은 “증가율이 1보다 큰 상수배 성장”과 “복사 비용이 원소 수에 비례”라는 모델 위에서 성립합니다. 성장 정책이 선형 증가이면 상환 O(1)이 깨집니다.</p>
         </div>
         <div class="card">
-          <h3>실전 시사점</h3>
+          <h3>설계 시사점</h3>
           <p><code>append</code> 중심 배치 누적에는 list가 유리합니다. 반면 앞단 삭제/삽입이 주연산이면 상환 분석 대상이 달라지므로 <code>deque</code>로 구조를 분리해야 합니다.</p>
         </div>
       </div>
@@ -1293,7 +1293,7 @@ print("one int    :", sys.getsizeof(0))</code></pre>
           <tr><td>tuple</td><td>불변, 상대적으로 컴팩트</td><td>키/레코드 표현에 유리</td></tr>
         </tbody>
       </table>
-      <p class="muted">실무 지침: 수치 집약 루프는 Python 객체 컨테이너(list/dict/set) 안에서 직접 연산하지 말고, 가능한 한 배열/텐서 표현으로 일찍 변환해 연산 경로를 분리하세요.</p>
+      <p class="muted">수치 집약 루프는 Python 객체 컨테이너(list/dict/set) 안에서 직접 연산하기보다, 배열/텐서 표현으로 일찍 변환해 연산 경로를 분리하는 편이 유리합니다.</p>
     </section>
 
     <section class="slide">
@@ -1319,7 +1319,6 @@ $$
           <tr><td>Invariant</td><td>항상 유지할 성질은?</td><td>LIFO, uniqueness, ordering policy</td></tr>
         </tbody>
       </table>
-      <p class="muted">이 템플릿을 이후 list/dict/set/deque/heapq 분석에 동일하게 적용합니다.</p>
     </section>
 
     <section class="slide">
@@ -1342,10 +1341,10 @@ f(j) & (j\neq i)
 \end{cases}
 $$
       </div>
-      <p>실전에서는 리스트를 “작은 배열”로 보는 습관이 중요합니다. 앞쪽 삽입/삭제는 내부 시프트를 유발하고, 슬라이싱은 복사를 유발합니다. 즉, 리스트는 범용 컨테이너지만 모든 연산에 균등하게 좋은 자료구조는 아니며, 연산 패턴(앞/뒤/중간, 조회/갱신 비율)에 따라 선택되어야 합니다. 시퀀스 배치 구성, 길이별 버킷팅, 샘플 셔플 버퍼처럼 순서 중심 연산에서는 list가 기준 구조가 됩니다.</p>
+      <p>리스트를 “작은 배열”로 보는 관점이 중요합니다. 앞쪽 삽입/삭제는 내부 시프트를 유발하고, 슬라이싱은 복사를 유발합니다. 즉, 리스트는 범용 컨테이너지만 모든 연산에 균등하게 좋은 자료구조는 아니며, 연산 패턴(앞/뒤/중간, 조회/갱신 비율)에 따라 선택되어야 합니다. 시퀀스 배치 구성, 길이별 버킷팅, 샘플 셔플 버퍼처럼 순서 중심 연산에서는 list가 기준 구조가 됩니다.</p>
       <div class="cols-2">
         <div class="card">
-          <h3>핵심 관찰</h3>
+          <h3>기본 성질</h3>
           <ul>
             <li>음수 인덱스: 뒤에서 접근</li>
             <li>슬라이싱은 새 리스트 생성</li>
@@ -1353,7 +1352,7 @@ $$
           </ul>
         </div>
         <div class="card">
-          <h3>빈발 오류 사례</h3>
+          <h3>자주 생기는 오류</h3>
           <ul>
             <li><code>[[0]*3]*4</code>의 참조 공유 버그</li>
             <li><code>remove</code> 반복 중 인덱스 꼬임</li>
@@ -1426,7 +1425,7 @@ print(a, b)</code></pre>
           <tr><td>순서 조작</td><td><code>reverse</code>, <code>sort</code>, <code>sorted</code></td><td><code>sort/reverse</code>=None</td><td><code>sort</code>는 stable + in-place, <code>sorted</code>는 새 리스트</td></tr>
         </tbody>
       </table>
-      <p class="muted">체크리스트: 연산마다 `state mutation 여부`, `반환 객체`, `복잡도`를 같이 표기하면 코드 리뷰에서 대부분의 list 버그를 사전에 제거할 수 있습니다.</p>
+      <p class="muted">연산마다 `state mutation 여부`, `반환 객체`, `복잡도`를 같이 표기하면 코드 리뷰에서 대부분의 list 버그를 사전에 제거할 수 있습니다.</p>
     </section>
 
     <section class="slide">
@@ -1450,7 +1449,7 @@ alias = scores
 sorted_scores = sorted(scores)  # new list
 scores.sort()                   # in-place mutation
 print(alias is scores, alias, sorted_scores)</code></pre>
-      <p class="muted">핵심: list 버그의 상당수는 값 계산보다 상태 변화(in-place)와 반환값(<code>None</code>)의 혼동에서 발생합니다.</p>
+      <p class="muted">list 버그의 상당수는 값 계산보다 상태 변화(in-place)와 반환값(<code>None</code>)의 혼동에서 발생합니다.</p>
     </section>
 
     <section class="slide">
@@ -1483,7 +1482,7 @@ $$
           <tr><td>삭제 연산</td><td><code>del a[i:j]</code> == <code>a[i:j]=[]</code></td><td>인덱스 이동으로 후속 루프 로직 깨짐</td></tr>
         </tbody>
       </table>
-      <p class="muted">핵심: slice는 view가 아니라 새 list(outer container)입니다. 다만 내부 원소가 mutable이면 참조 공유가 남습니다.</p>
+      <p class="muted">slice는 view가 아니라 새 list(outer container)입니다. 다만 내부 원소가 mutable이면 참조 공유가 남습니다.</p>
     </section>
 
     <section class="slide">
@@ -1508,7 +1507,7 @@ print(arr[5:1:-2])    # [5, 3]
 
 arr[2:5] = [20, 30]
 print(arr)            # [0, 1, 20, 30, 5, 6]</code></pre>
-      <p class="muted">요약: 단일 인덱스는 strict, 슬라이스는 tolerant(clipping)입니다.</p>
+      <p class="muted">단일 인덱스는 strict, 슬라이스는 tolerant(clipping)입니다.</p>
     </section>
 
     <section class="slide">
@@ -1548,7 +1547,7 @@ print(a, c, d, e)</code></pre>
           <tr><td><code>deepcopy(a)</code></td><td>새 객체</td><td>복제</td><td>중첩 구조 분리</td></tr>
         </tbody>
       </table>
-      <p class="muted">핵심 규칙: list 슬라이스는 view가 아니라 shallow copy입니다. “새 리스트 생성”과 “내부 원소 공유”가 동시에 성립합니다.</p>
+      <p class="muted">list 슬라이스는 view가 아니라 shallow copy입니다. “새 리스트 생성”과 “내부 원소 공유”가 동시에 성립합니다.</p>
     </section>
 
     <section class="slide">
@@ -1630,7 +1629,7 @@ print(list(lengths_gen))  # 남은 요소만 소비</code></pre>
     <section class="slide">
       <span class="kicker">Part 2.6 · Sorting and Ordering Contracts</span>
       <h2><code>sort()</code> vs <code>sorted()</code>, stable sort, multi-key ranking</h2>
-      <p>정렬은 단순 출력 정리가 아니라 ordering contract를 명시하는 도구입니다. 특히 실험 랭킹/체크포인트 선택에서는 tie-break 규칙을 코드로 고정해야 재현성이 확보됩니다.</p>
+      <p>정렬은 단순 출력 정리가 아니라 ordering contract를 명시하는 도구입니다. 특히 실험 랭킹/체크포인트 선택에서는 tie-break 기준을 코드로 고정해야 재현성이 확보됩니다.</p>
       <div class="cols-2">
         <div class="card">
           <h3>API 차이</h3>
@@ -1654,7 +1653,7 @@ print(items)  # 안정 정렬로 보조 키 순서 유지</code></pre>
           <tr><td>반환값</td><td><code>None</code></td><td>새 list</td></tr>
           <tr><td>입력 타입</td><td>list 전용</td><td>임의 iterable</td></tr>
           <tr><td>메모리</td><td>추가 list 없음</td><td>새 list 할당</td></tr>
-          <tr><td>실전 선택</td><td>원본 갱신 의도일 때</td><td>원본 보존/함수형 파이프라인일 때</td></tr>
+          <tr><td>선택 기준</td><td>원본 갱신 의도일 때</td><td>원본 보존/함수형 파이프라인일 때</td></tr>
         </tbody>
       </table>
     </section>
@@ -1668,7 +1667,7 @@ records = sorted(records, key=lambda x: x[0])               # 보조 키(id)
 records = sorted(records, key=lambda x: x[1], reverse=True) # 주 키(score)
 print(records)</code></pre>
       <table>
-        <thead><tr><th>상황</th><th>stable sort가 주는 이점</th><th>실무 포인트</th></tr></thead>
+        <thead><tr><th>상황</th><th>stable sort가 주는 이점</th><th>의미</th></tr></thead>
         <tbody>
           <tr><td>동점 점수 랭킹</td><td>보조 키 순서 유지</td><td>tie-break를 코드에 명시</td></tr>
           <tr><td>우선순위 큐 전처리</td><td>입력 순서 보존 가능</td><td>감사/디버깅 로그 해석 용이</td></tr>
@@ -1697,12 +1696,12 @@ q.popleft()   # queue workload
 
 seen: set[int] = {1, 2, 3}
 print(2 in seen)</code></pre>
-      <p class="muted">Part 5의 벤치마크(<code>list.pop(0)</code> vs <code>deque.popleft()</code>)는 이 선택 규칙의 실측 근거입니다.</p>
+      <p class="muted">Part 5의 벤치마크(<code>list.pop(0)</code> vs <code>deque.popleft()</code>)는 이 선택 기준의 실측 근거입니다.</p>
     </section>
 
     <section class="slide">
       <span class="kicker">Part 2.7.1 · Decision Checklist</span>
-      <h2>List 선택/비선택 체크리스트</h2>
+      <h2>list를 써야 할 때 / 쓰지 말아야 할 때</h2>
       <div class="cols-2">
         <div class="card">
           <h3>list를 써도 되는 경우</h3>
@@ -1771,7 +1770,7 @@ class TrainConfig:
           <tr><td><code>@dataclass(frozen=True)</code></td><td>명시적 필드, 타입/리팩터링 친화</td><td>상대적으로 무거움</td><td>설정 객체, 실험 메타데이터</td></tr>
         </tbody>
       </table>
-      <p class="muted">선택 규칙: 해시 키와 스냅샷은 tuple 계열, 도메인 의미와 유지보수성은 frozen dataclass로 분리합니다.</p>
+      <p class="muted">선택 기준: 해시 키와 스냅샷은 tuple 계열, 도메인 의미와 유지보수성은 frozen dataclass로 분리합니다.</p>
     </section>
 
     <section class="slide">
@@ -1803,7 +1802,7 @@ print(list(w))                # [11, 12, 13]</code></pre>
         </div>
       </div>
       <table>
-        <thead><tr><th>연산</th><th>list</th><th>deque</th><th>코멘트</th></tr></thead>
+        <thead><tr><th>연산</th><th>list</th><th>deque</th><th>설명</th></tr></thead>
         <tbody>
           <tr><td>append/pop (right)</td><td>O(1) amortized</td><td>O(1)</td><td>둘 다 양호</td></tr>
           <tr><td>pop(0)/appendleft</td><td>O(n)</td><td>O(1)</td><td>queue에서는 deque 우세</td></tr>
@@ -1832,7 +1831,7 @@ heapq.heappush(h, Job(1, 1, "train"))
 heapq.heappush(h, Job(0, 2, "warmup"))
 print(heapq.heappop(h))</code></pre>
       <table>
-        <thead><tr><th>연산</th><th>복잡도</th><th>실무 포인트</th></tr></thead>
+        <thead><tr><th>연산</th><th>복잡도</th><th>의미</th></tr></thead>
         <tbody>
           <tr><td><code>heappush/heappop</code></td><td>O(log n)</td><td>Top 우선순위 유지</td></tr>
           <tr><td><code>h[0]</code></td><td>O(1)</td><td>최솟값 peek</td></tr>
@@ -1853,7 +1852,7 @@ heapq.heapify(h)
 print(h)          # 내부 배열은 부분 순서만 만족
 print(h[0])       # 최소값만 즉시 보장</code></pre>
       <table>
-        <thead><tr><th>요구사항</th><th>heap 적합성</th><th>코멘트</th></tr></thead>
+        <thead><tr><th>요구사항</th><th>heap 적합성</th><th>설명</th></tr></thead>
         <tbody>
           <tr><td>최소값 반복 추출</td><td>높음</td><td><code>heappop</code> O(log n)</td></tr>
           <tr><td>top-k 추출</td><td>높음</td><td><code>nlargest/nsmallest</code>로 확장 가능</td></tr>
@@ -1923,7 +1922,7 @@ $$
       <span class="kicker">Part 3.1 · Dict Internals</span>
       <h2>딕셔너리 내부: 해시, 충돌, 키 설계</h2>
       <p>딕셔너리는 해시 테이블입니다. 핵심은 <strong>좋은 키</strong>와 <strong>충돌 관리</strong>입니다.</p>
-      <p>실전에서는 평균 O(1)만 외우면 부족합니다. 충돌이 늘어나는 데이터 분포, 해시 일관성이 깨진 사용자 정의 객체, 과도한 리사이즈가 동시에 발생하면 tail latency가 크게 흔들립니다. 따라서 키 설계 단계에서 불변성·동등성·해시 일관성을 명시하고, 조회 실패 정책을 함께 문서화해야 합니다.</p>
+      <p>평균 O(1)만 외우면 부족합니다. 충돌이 늘어나는 데이터 분포, 해시 일관성이 깨진 사용자 정의 객체, 과도한 리사이즈가 동시에 발생하면 tail latency가 크게 흔들립니다. 따라서 키 설계 단계에서 불변성·동등성·해시 일관성을 명시하고, 조회 실패 정책을 함께 문서화해야 합니다.</p>
       <div class="formula">
 $$
 k_1 = k_2 \Rightarrow h(k_1)=h(k_2)\quad\text{(required)}
@@ -1988,12 +1987,12 @@ metrics_cache[cfg_key] = {"val_f1": 0.913, "val_loss": 0.224}
 # 키가 list면 TypeError, 가변 구조라 재현성 있는 조회가 어렵다.
 print(metrics_cache[cfg_key]["val_f1"])</code></pre>
       <table>
-        <thead><tr><th>리스크</th><th>증상</th><th>예방 규칙</th></tr></thead>
+        <thead><tr><th>리스크</th><th>증상</th><th>예방 방법</th></tr></thead>
         <tbody>
           <tr><td>가변 객체 키 사용</td><td>삽입 후 조회 실패/불안정</td><td>키 타입은 불변 객체로 제한</td></tr>
           <tr><td><code>__eq__</code>/<code>__hash__</code> 불일치</td><td>동등 객체가 다른 슬롯에 저장</td><td>동등성 계약을 테스트로 강제</td></tr>
           <tr><td>적대적 충돌 분포</td><td>조회 지연 급증</td><td>키 정규화 + 분포 점검 벤치마크</td></tr>
-          <tr><td>누락 키 처리 정책 부재</td><td>간헐적 KeyError 또는 silent default</td><td><code>d[k]</code>/<code>get</code> 사용 규칙 분리</td></tr>
+          <tr><td>누락 키 처리 정책 부재</td><td>간헐적 KeyError 또는 silent default</td><td><code>d[k]</code>/<code>get</code> 사용 정책 분리</td></tr>
         </tbody>
       </table>
       <div class="formula">
@@ -2008,7 +2007,7 @@ $$
 
     <section class="slide">
       <span class="kicker">Part 3.2 · Dict as Hash Table Instance</span>
-      <h2>해시 테이블 이론에서 dict 실전 규칙으로 연결하기</h2>
+      <h2>해시 테이블 이론에서 dict 설계 기준으로 연결하기</h2>
       <p>Foundation의 해시 이론은 dict 장에서 직접 회수되어야 합니다. 평균 O(1)은 로드 팩터, 해시 분산, 키 불변성 가정을 만족할 때만 유지됩니다.</p>
       <div class="formula">
 $$
@@ -2018,7 +2017,7 @@ $$
 \(\alpha\) 증가, 키 분산 악화, hash/eq 불일치는 tail latency를 증가시킵니다.
       </div>
       <table>
-        <thead><tr><th>이론 가정</th><th>dict 실전 규칙</th><th>실패 모드</th></tr></thead>
+        <thead><tr><th>이론 가정</th><th>dict 설계 기준</th><th>실패 모드</th></tr></thead>
         <tbody>
           <tr><td>균등 해싱</td><td>키 정규화/키 타입 고정</td><td>충돌 집중으로 조회 지연</td></tr>
           <tr><td>키 불변성</td><td>tuple/frozen dataclass 키 사용</td><td>삽입 후 조회 실패</td></tr>
@@ -2026,13 +2025,13 @@ $$
           <tr><td>적절한 리사이즈</td><td>대형 입력에서 벤치마크로 확인</td><td>간헐적 latency spike</td></tr>
         </tbody>
       </table>
-      <p class="muted">요약: dict는 “그냥 빠른 맵”이 아니라 가정 위에서 성능이 성립하는 해시 테이블 구현입니다.</p>
+      <p class="muted">dict는 “그냥 빠른 맵”이 아니라 가정 위에서 성능이 성립하는 해시 테이블 구현입니다.</p>
     </section>
 
     <section class="slide">
       <span class="kicker">Part 3.3 · Lookup Policies & Failure Modes</span>
       <h2>딕셔너리 실패 모드: 조회 정책과 안전성</h2>
-      <p>딕셔너리는 키 기반 접근이 핵심이므로, 실전에서는 “키가 없을 때의 정책”을 먼저 설계해야 합니다. 예외를 발생시킬지, 기본값을 줄지, 자동 생성할지를 합의하지 않으면 버그가 잠복합니다.</p>
+      <p>딕셔너리는 키 기반 접근이 핵심이므로 “키가 없을 때의 정책”을 먼저 설계해야 합니다. 예외를 발생시킬지, 기본값을 줄지, 자동 생성할지를 합의하지 않으면 버그가 잠복합니다.</p>
       <div class="cols-2">
         <div class="card">
           <h3>조회 정책</h3>
@@ -2051,7 +2050,7 @@ print(d, v)</code></pre>
         </div>
       </div>
       <table>
-        <thead><tr><th>연산</th><th>시간복잡도(평균)</th><th>실전 코멘트</th></tr></thead>
+        <thead><tr><th>연산</th><th>시간복잡도(평균)</th><th>설명</th></tr></thead>
         <tbody>
           <tr><td><code>d[k]</code> 조회</td><td>O(1)</td><td>실패를 예외로 다루는 곳에서 사용</td></tr>
           <tr><td><code>get</code></td><td>O(1)</td><td>유실 데이터가 자연스러운 파이프라인에 적합</td></tr>
@@ -2059,7 +2058,7 @@ print(d, v)</code></pre>
           <tr><td><code>pop</code></td><td>O(1)</td><td>소비(consumption) 모델에 적합</td></tr>
         </tbody>
       </table>
-      <p>설계 규칙: 외부 입력(JSON, 로그, CSV)에서 온 dict는 항상 <code>get</code> + 검증 단계를 거치고, 내부 프로토콜 dict는 <code>d[k]</code>로 즉시 예외를 발생시키는 방식이 디버깅에 유리합니다.</p>
+      <p>외부 입력(JSON, 로그, CSV)에서 온 dict는 항상 <code>get</code> + 검증 단계를 거치고, 내부 프로토콜 dict는 <code>d[k]</code>로 즉시 예외를 발생시키는 방식이 디버깅에 유리합니다.</p>
     </section>
 
     <section class="slide">
@@ -2122,7 +2121,7 @@ print(snap)        # 기존 상태 유지</code></pre>
     <section class="slide">
       <span class="kicker">Part 3.5 · Hash Map Design Patterns</span>
       <h2>해시 기반 매핑 패턴: 집계, 병합, 계층 구성</h2>
-      <p>이 슬라이드는 “연산은 같아도 의도가 다른 패턴”을 구분하는 데 목적이 있습니다. <code>comprehension</code>은 결정 규칙을 데이터 구조로 압축할 때, <code>defaultdict/Counter</code>는 누적·집계 로직의 조건 분기를 제거할 때, 병합 연산은 구성 계층(기본값/실험값/런타임값)을 합성할 때 가장 효과적입니다.</p>
+      <p>이 슬라이드는 “연산은 같아도 의도가 다른 패턴”을 구분하는 데 목적이 있습니다. <code>comprehension</code>은 결정 조건을 데이터 구조로 압축할 때, <code>defaultdict/Counter</code>는 누적·집계 로직의 조건 분기를 제거할 때, 병합 연산은 구성 계층(기본값/실험값/런타임값)을 합성할 때 가장 효과적입니다.</p>
       <div class="cols-2">
         <div class="card">
           <h3>dict comprehension</h3>
@@ -2149,7 +2148,7 @@ print(dict(bucket))</code></pre>
 a: dict[str, int] = {"x": 1, "y": 2}
 b: dict[str, int] = {"y": 99, "z": 3}
 print(a | b)  # {'x':1, 'y':99, 'z':3}</code></pre>
-      <p class="muted">패턴 선택 기준: 1) 선언형 규칙이면 comprehension, 2) 누적/집계면 defaultdict·Counter, 3) 계층형 조회 정책이면 ChainMap, 4) 단순 결과 병합이면 <code>|</code>.</p>
+      <p class="muted">패턴 선택 기준: 1) 선언형 변환이면 comprehension, 2) 누적/집계면 defaultdict·Counter, 3) 계층형 조회 정책이면 ChainMap, 4) 단순 결과 병합이면 <code>|</code>.</p>
     </section>
 
     <section class="slide">
@@ -2166,7 +2165,7 @@ print(a | b)  # {'x':1, 'y':99, 'z':3}</code></pre>
           <tr><td><code>ChainMap</code></td><td>계층형 조회 뷰</td><td><code>ChainMap(a,b,c)</code></td><td>runtime &gt; project &gt; default 우선순위</td><td>즉시 materialized merge가 필요할 때</td></tr>
         </tbody>
       </table>
-      <p class="muted">요약: 이 구조들은 API가 유사해 보여도 실패 정책과 의미 계약이 다르므로, 데이터 모양이 아니라 연산 정책으로 선택합니다.</p>
+      <p class="muted">이 구조들은 API가 유사해 보여도 실패 정책과 의미 계약이 다르므로, 데이터 모양이 아니라 연산 정책으로 선택합니다.</p>
     </section>
 
     <section class="slide">
@@ -2234,14 +2233,14 @@ print(cfg["batch_size"])  # 32
 
 cfg["batch_size"] = 64    # 맨 앞(runtime)에 기록</code></pre>
       <table>
-        <thead><tr><th>질문</th><th>ChainMap 답</th><th>실무 판단</th></tr></thead>
+        <thead><tr><th>질문</th><th>ChainMap 답</th><th>판단 기준</th></tr></thead>
         <tbody>
           <tr><td>조회 우선순위</td><td>앞 dict부터 탐색</td><td><code>runtime &gt; project &gt; defaults</code> 명시 가능</td></tr>
           <tr><td>메모리/복사 비용</td><td>materialize 없이 뷰 구성</td><td>큰 설정 dict 계층에 유리</td></tr>
           <tr><td>수정 반영 위치</td><td>첫 dict에 기록</td><td>영구 병합이 필요하면 <code>|</code> 사용</td></tr>
         </tbody>
       </table>
-      <p class="muted">요약: ChainMap은 “병합 결과물”이 아니라 “lookup policy”를 표현하는 도구입니다.</p>
+      <p class="muted">ChainMap은 “병합 결과물”이 아니라 “lookup policy”를 표현하는 도구입니다.</p>
     </section>
 
     <section class="slide">
@@ -2310,13 +2309,13 @@ print(seen)</code></pre>
           <tr><td><code>discard(x)</code></td><td>무시</td><td>반복 정리/재시도 가능한 파이프라인</td></tr>
         </tbody>
       </table>
-      <p class="muted">리서치 코드 규칙: strict path와 tolerant path를 섞지 말고 함수 이름/문서에서 정책을 분리합니다.</p>
+      <p class="muted">strict path와 tolerant path를 섞지 말고 함수 이름/문서에서 정책을 분리합니다.</p>
     </section>
 
     <section class="slide">
       <span class="kicker">Part 4 · Selection &amp; Implementation</span>
       <h2>선택 근거를 구현 계약으로 닫기</h2>
-      <p>selection framework는 특정 자료구조 장의 부록이 아니라, 전체 구조군(list/dict/set/tuple/deque/heapq/bisect)을 본 뒤 적용하는 의사결정 규칙입니다.</p>
+      <p>selection framework는 특정 자료구조 장의 부록이 아니라, 전체 구조군(list/dict/set/tuple/deque/heapq/bisect)을 본 뒤 적용하는 의사결정 기준입니다.</p>
       <div class="formula">
 $$
 \text{Choose }D^\*=\arg\min_D \left(\sum_{op} w_{op}T_D(op) + \lambda M_D + \mu R_D + \nu G_D\right)
@@ -2358,17 +2357,17 @@ $$
         <thead><tr><th>분석 항목</th><th>수식</th><th>의미</th></tr></thead>
         <tbody>
           <tr><td>혼합 비용</td><td><code>Σ p_op · c_D(op)</code></td><td>실제 파이프라인 연산 비율 반영</td></tr>
-          <tr><td>스케일 영향</td><td><code>m=ρn</code> 치환</td><td>운영 시 데이터 증가에 대한 기울기 예측</td></tr>
+          <tr><td>스케일 영향</td><td><code>m=ρn</code> 치환</td><td>입력 크기 증가에 대한 기울기 예측</td></tr>
           <tr><td>선택 근거</td><td><code>argmin_D E[T_D]</code></td><td>“왜 이 구조인가”를 정량 근거로 고정</td></tr>
         </tbody>
       </table>
-      <p class="muted">실무 규칙: 벤치마크 전에 먼저 비용 식을 쓰고, 벤치마크는 식의 계수/편차를 추정하는 절차로 사용합니다.</p>
+      <p class="muted">벤치마크 전에 비용 식을 먼저 세우고, 벤치마크는 식의 계수와 편차를 추정하는 절차로 사용합니다.</p>
     </section>
 
     <section class="slide">
       <span class="kicker">Part 4.2 · ADT Mapping</span>
       <h2>형식 명세를 구현 매핑으로 닫기</h2>
-      <p>Part 1.5의 명세 템플릿(State/Operation/Precondition/Invariant)을 실제 구현 선택으로 연결합니다. 아래 표는 “무엇을 빠르게 하려는가”와 함께 “어떻게 실패를 다룰 것인가”까지 포함합니다.</p>
+      <p>Part 1.5의 명세 형식(State/Operation/Precondition/Invariant)을 실제 구현 선택으로 연결합니다. 아래 표는 “무엇을 빠르게 하려는가”와 함께 “어떻게 실패를 다룰 것인가”까지 포함합니다.</p>
       <table>
         <thead><tr><th>ADT</th><th>핵심 연산</th><th>표준 구현</th><th>불변식/실패 정책</th><th>적용 맥락</th></tr></thead>
         <tbody>
@@ -2381,7 +2380,7 @@ $$
       </table>
       <div class="cols-2">
         <div class="card">
-          <h3>선택 체크리스트</h3>
+          <h3>구조 선택 기준</h3>
           <ul>
             <li>핵심 연산의 호출 비율(조회/삽입/삭제)을 먼저 계량화</li>
             <li>최악 시간보다 tail-latency 민감도(95/99 퍼센타일) 확인</li>
@@ -2389,7 +2388,7 @@ $$
           </ul>
         </div>
         <div class="card">
-          <h3>운영 경고</h3>
+          <h3>주의</h3>
           <ul>
             <li><code>list.pop(0)</code>로 Queue 구현 금지 (O(n) 누적)</li>
             <li>정렬 유지가 필요 없는데 Ordered 구조를 강제하지 않기</li>
@@ -2401,7 +2400,7 @@ $$
 
     <section class="slide">
       <span class="kicker">Part 4.3 · Implementations</span>
-      <h2>명세를 파이썬 구현으로 옮기기: 예외 정책과 tie-break 규칙</h2>
+      <h2>명세를 파이썬 구현으로 옮기기: 예외 정책과 tie-break 기준</h2>
       <pre><code>from dataclasses import dataclass, field
 from typing import Generic, TypeVar
 
@@ -2453,7 +2452,7 @@ print(sorted(jobs))</code></pre>
 
     <section class="slide">
       <span class="kicker">Part 4.4 · Type Contracts</span>
-      <h2>Type Hint를 계약 문서로 사용하는 실무 규칙</h2>
+      <h2>Type Hint와 계약</h2>
       <p>타입 힌트는 ADT 명세를 함수 경계에 고정하는 장치입니다. 구현 이후에 붙이는 주석이 아니라, 입력/출력 계약을 명시해 반례 공간을 줄이는 역할을 합니다.</p>
       <div class="formula">
 $$
@@ -2537,14 +2536,14 @@ $$
 Big-O는 증가율을 설명하고, 실제 성능은 상수항/캐시/런타임 구현체 영향을 함께 측정해야 합니다.
       </div>
       <table>
-        <thead><tr><th>관찰 포인트</th><th>해석</th></tr></thead>
+        <thead><tr><th>실험 결과</th><th>해석</th></tr></thead>
         <tbody>
           <tr><td><code>list.pop(0)</code> 증가폭</td><td>원소 시프트 때문에 N 증가 시 선형적으로 악화</td></tr>
           <tr><td><code>deque.popleft()</code> 안정성</td><td>양끝 연산 O(1)이라 반복 횟수에 비례해 완만히 증가</td></tr>
           <tr><td>실험 재현성</td><td>동일 입력 생성, warm-up, 반복 측정으로 편차 통제</td></tr>
         </tbody>
       </table>
-      <p class="muted">해석 규칙: “이론과 측정이 다르다”가 아니라 “이론은 증가율, 측정은 상수항과 시스템 효과를 포함한다”로 분리해 읽어야 정확합니다.</p>
+      <p class="muted">“이론과 측정이 다르다”가 아니라, 이론은 증가율을 설명하고 측정은 상수항과 시스템 효과를 포함한다고 분리해 읽어야 정확합니다.</p>
     </section>
 
     <section class="slide">
@@ -2617,7 +2616,7 @@ $$
         <tbody>
           <tr><td>기울기 추정</td><td><code>log t</code> vs <code>log n</code>의 slope는?</td><td>경험적 차수 \(\hat{b}\)</td></tr>
           <tr><td>가설 비교</td><td>선형/제곱 중 무엇이 더 맞는가?</td><td>잔차/설명력 비교</td></tr>
-          <tr><td>운영 해석</td><td>n이 10배 커질 때 시간은 몇 배인가?</td><td>스케일 업 리스크 예측</td></tr>
+          <tr><td>스케일 해석</td><td>n이 10배 커질 때 시간은 몇 배인가?</td><td>스케일 업 리스크 예측</td></tr>
         </tbody>
       </table>
       <p class="muted">권장: 평균 시간만 보고 결론 내리지 말고, \(n\)-sweep + log-log slope를 함께 보고 선택 근거를 고정합니다.</p>
@@ -2649,7 +2648,7 @@ print("top-k speedup:", st.mean(t_sort) / st.mean(t_heap))</code></pre>
           <tr><td>Queue front delete</td><td><code>list.pop(0)</code> vs <code>deque.popleft()</code></td><td>O(n) vs O(1)</td><td>N 증가 시 기울기 차이 확인</td></tr>
           <tr><td>Membership lookup</td><td><code>list</code> vs <code>set</code></td><td>O(n) vs avg O(1)</td><td>질의 수가 늘수록 speedup 확대</td></tr>
           <tr><td>Top-k extraction</td><td>full sort vs <code>heapq.nlargest</code></td><td>O(n log n) vs O(n log k)</td><td>k가 작을수록 heap 이점 확대</td></tr>
-          <tr><td>Tail stability</td><td>모든 구조</td><td>p95/p99</td><td>평균보다 tail latency로 운영 리스크 판단</td></tr>
+          <tr><td>Tail stability</td><td>모든 구조</td><td>p95/p99</td><td>평균보다 tail latency로 시스템 리스크 판단</td></tr>
         </tbody>
       </table>
       <p class="muted">최종 보고서에는 Python 버전/CPU/메모리/반복 수/시드/입력 분포를 함께 기록해 재현성을 확보합니다.</p>
@@ -2657,8 +2656,8 @@ print("top-k speedup:", st.mean(t_sort) / st.mean(t_heap))</code></pre>
 
     <section class="slide">
       <span class="kicker">Part 6 · Validation &amp; Semantic Hazards</span>
-      <h2>검증과 안정성: 실패 모드를 운영 규칙으로 고정하기</h2>
-      <p>후반부의 목적은 새 문법을 늘리는 것이 아니라, 앞에서 배운 구조를 실제 연구 코드에서 안전하게 운영하는 것입니다. 핵심은 “어떤 실패가 생기고, 어떤 검증으로 막을 것인가”를 구조별로 고정하는 것입니다.</p>
+      <h2>검증과 안정성: 실패 모드와 대응 원칙</h2>
+      <p>후반부의 목적은 새 문법을 늘리는 것이 아니라, 앞에서 배운 구조를 실제 연구 코드에서 안전하게 사용하는 것입니다. 핵심은 “어떤 실패가 생기고, 어떤 검증으로 막을 것인가”를 구조별로 고정하는 것입니다.</p>
       <div class="cols-2">
         <div class="card">
           <h3>Hazard 1: aliasing</h3>
@@ -2691,7 +2690,7 @@ print(sorted(labels))       # 직렬화/로그는 정렬 후 고정</code></pre>
         </div>
       </div>
       <table>
-        <thead><tr><th>위험</th><th>주요 구조</th><th>실패 증상</th><th>검증 규칙</th></tr></thead>
+        <thead><tr><th>위험</th><th>주요 구조</th><th>실패 증상</th><th>검증 기준</th></tr></thead>
         <tbody>
           <tr><td>참조 공유(aliasing)</td><td>list/dict nested</td><td>실험 설정/캐시가 연쇄 오염</td><td>deepcopy 또는 immutable snapshot</td></tr>
           <tr><td>키 계약 위반</td><td>dict/set</td><td>조회 실패, 충돌 지연 증가</td><td>immutable key + hash/eq 테스트</td></tr>
@@ -2699,7 +2698,7 @@ print(sorted(labels))       # 직렬화/로그는 정렬 후 고정</code></pre>
           <tr><td>순서 비결정성</td><td>set</td><td>로그/직렬화 재현성 저하</td><td>sorted() 또는 deterministic pipeline</td></tr>
         </tbody>
       </table>
-      <p class="muted">핵심 메시지: 자료구조는 성능 도구이자 의미론 계약입니다. 검증 없는 선택은 운영 단계에서 재현성 결함으로 되돌아옵니다.</p>
+      <p class="muted">자료구조는 성능 도구이자 의미론 계약입니다. 검증 없는 선택은 재현성 결함으로 이어집니다.</p>
     </section>
 
     <section class="slide">
@@ -2707,7 +2706,7 @@ print(sorted(labels))       # 직렬화/로그는 정렬 후 고정</code></pre>
       <h2>순서 계약과 재현성: list / dict / set / snapshot을 한 번에 정리</h2>
       <p>후반부를 읽을 때는 “순서 계약”과 “변경 가시성”을 먼저 고정해야 합니다. 이 규칙을 먼저 두면 iterator/copy/concurrency 슬라이드가 하나의 안전성 체계로 연결됩니다.</p>
       <table>
-        <thead><tr><th>구조/표현</th><th>순서 계약</th><th>변경 가시성</th><th>재현성 규칙</th></tr></thead>
+        <thead><tr><th>구조/표현</th><th>순서 계약</th><th>변경 가시성</th><th>재현성 기준</th></tr></thead>
         <tbody>
           <tr><td><code>list</code></td><td>인덱스 순서 의미가 핵심</td><td>in-place 변경이 alias로 전파</td><td>정렬/tie-break 정책을 코드에 명시</td></tr>
           <tr><td><code>dict</code></td><td>삽입 순서 보존(3.7+)</td><td><code>items()</code>는 live view</td><td>순회 중 변경 시 snapshot(<code>list(...)</code>)</td></tr>
@@ -2721,7 +2720,7 @@ snap = list(d.items())    # snapshot
 d["c"] = 3
 print(list(view))         # c 반영
 print(snap)               # 기존 상태 유지</code></pre>
-      <p class="muted">운영 규칙: “순서가 의미인가?”, “관측 시점이 중요한가?”, “변경이 전파되면 안 되는가?”를 먼저 체크합니다.</p>
+      <p class="muted">먼저 확인할 질문: “순서가 의미인가?”, “관측 시점이 중요한가?”, “변경이 전파되면 안 되는가?”</p>
     </section>
 
     <section class="slide">
@@ -2839,14 +2838,14 @@ $$
           <tr><td>성능 민감 구간</td><td>선택적 복사(필요 필드만)</td><td>deepcopy 비용/지연 최소화</td></tr>
         </tbody>
       </table>
-      <p class="muted">체크리스트: (1) 중첩 객체인가? (2) 함수가 입력을 변경하는가? (3) 복사 비용이 병목인가? 이 3개를 먼저 판단한 뒤 복사 전략을 고릅니다.</p>
+      <p class="muted">(1) 중첩 객체인가? (2) 함수가 입력을 변경하는가? (3) 복사 비용이 병목인가? 이 3가지를 먼저 판단한 뒤 복사 전략을 고릅니다.</p>
     </section>
 
     <section class="slide">
       <span class="kicker">Part 6.4 · Runtime Memory Management</span>
       <h2>파이썬 메모리 관리: 참조 카운트 + 사이클 GC</h2>
       <p>파이썬(CPython)은 기본적으로 참조 카운팅(reference counting)으로 객체 생명주기를 관리하고, 순환 참조는 세대별 가비지 컬렉터가 처리합니다.</p>
-      <p>Part 1.4가 원리(객체/참조 구조)를 다뤘다면, 이 슬라이드는 운영 규칙(누수 징후, cycle 회수, 관측 포인트)을 다룹니다.</p>
+      <p>Part 1.4가 원리(객체/참조 구조)를 다뤘다면, 이 슬라이드는 점검 항목(누수 징후, cycle 회수, 관측 포인트)을 다룹니다.</p>
       <p>이중 구조를 이해하면 메모리 누수 분석이 쉬워집니다. 단순 객체는 참조 카운트가 0이 되는 즉시 해제되지만, 순환 참조 구조는 카운트만으로 해제되지 않습니다. 따라서 장기 실행 프로세스에서는 cycle을 만들기 쉬운 객체 그래프를 점검하고, 필요 시 약한 참조 또는 명시적 해제 전략을 고려해야 합니다.</p>
       <div class="formula">
 $$
@@ -2891,7 +2890,7 @@ print(loss_history)</code></pre>
           </ul>
         </div>
         <div class="card">
-          <h3>검증 체크리스트</h3>
+          <h3>검증 항목</h3>
           <ul>
             <li>빈 구조에서 연산 예외 처리</li>
             <li>중복 키/누락 키 시 정책 일관성</li>
@@ -2922,7 +2921,7 @@ print(pop_safe(s), pop_safe(s), pop_safe(s))</code></pre>
     <section class="slide">
       <span class="kicker">Part 6.6 · Concurrency & Immutability</span>
       <h2>동시성과 불변 데이터: 안전한 공유 상태 설계</h2>
-      <p>병렬/비동기 환경에서는 자료구조 선택이 곧 동시성 안전성입니다. 공유 상태를 줄이고 불변 구조를 우선하면 race condition 가능성이 크게 감소합니다. 데이터 로더 워커, 비동기 전처리 태스크, 추론 요청 큐를 동시에 운영할수록 이 원칙의 효과가 커집니다.</p>
+      <p>병렬/비동기 환경에서는 자료구조 선택이 곧 동시성 안전성입니다. 공유 상태를 줄이고 불변 구조를 우선하면 race condition 가능성이 크게 감소합니다. 데이터 로더 워커, 비동기 전처리 태스크, 추론 요청 큐를 동시에 사용할수록 이 원칙의 효과가 커집니다.</p>
       <div class="cols-2">
         <div class="card">
           <h3>위험 패턴</h3>
@@ -3029,14 +3028,14 @@ $$
           <tr><td>성능 회귀 테스트</td><td>복잡도 가정의 실제 유지</td><td>입력 크기 증가 시 tail latency 급등 여부</td></tr>
         </tbody>
       </table>
-      <p class="muted">이제 이 테스트 규칙을 객체 의미론(참조, 복사, iterator 소비, 상태 생명주기)과 직접 연결해 코드 리뷰 기준으로 사용합니다.</p>
+      <p class="muted">이제 이 테스트 기준을 객체 의미론(참조, 복사, iterator 소비, 상태 생명주기)과 직접 연결해 코드 리뷰 기준으로 사용합니다.</p>
     </section>
 
     <section class="slide">
       <span class="kicker">Part 6.8 · Final Synthesis</span>
       <h2>최종 종합: 선택, 순서, 복사, 실패 정책을 한 장으로 닫기</h2>
       <table>
-        <thead><tr><th>질문</th><th>기본 선택</th><th>검증 규칙</th></tr></thead>
+        <thead><tr><th>질문</th><th>기본 선택</th><th>검증 기준</th></tr></thead>
         <tbody>
           <tr><td>연산 패턴이 무엇인가?</td><td>queue=deque, membership=set, top-k=heapq, key-value=dict</td><td>Part 5에서 size sweep + p95/p99로 검증</td></tr>
           <tr><td>순서가 의미인가?</td><td>list/dict는 계약, set은 비계약</td><td>직렬화 전 정렬/안정 정렬/tie-break 명시</td></tr>
@@ -3049,7 +3048,7 @@ $$
 # 2) 지배 연산 기준으로 구조 선택
 # 3) 실패 정책/순서 계약 명시
 # 4) 벤치마크 + 테스트로 검증</code></pre>
-      <p class="muted">한 줄 결론: 자료구조 선택은 문법 선택이 아니라 의미론·비용·검증 계약을 동시에 설계하는 일입니다.</p>
+      <p class="muted">자료구조 선택은 문법 선택이 아니라 의미론·비용·검증 계약을 동시에 설계하는 일입니다.</p>
     </section>
 
   </main>
