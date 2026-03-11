@@ -9,6 +9,7 @@
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/styles/github-dark.min.css">
   <style>
     :root {
       --bg: #dddddd;
@@ -435,6 +436,12 @@
       font-size: inherit;
     }
 
+    pre code.hljs {
+      background: transparent;
+      color: var(--code-fg);
+      padding: 0;
+    }
+
     .formula {
       border: 1px solid #d6deea;
       background: #f7f9fc;
@@ -726,6 +733,88 @@
         bottom: 20px;
       }
       .cols-2, .cols-3 { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 680px) {
+      .deck {
+        margin: 12px auto 80px;
+        padding: 0 8px;
+        gap: 16px;
+      }
+
+      .slide:not(.title-slide) {
+        padding: 70px 16px 84px;
+        border-radius: 6px;
+      }
+
+      .slide:not(.title-slide) p,
+      .slide:not(.title-slide) li {
+        font-size: 1rem;
+        line-height: 1.62;
+      }
+
+      .slide:not(.title-slide) h2 {
+        margin-bottom: 18px;
+      }
+
+      .slide:not(.title-slide) table {
+        display: block;
+        width: 100%;
+        overflow-x: auto;
+        white-space: nowrap;
+      }
+
+      pre {
+        font-size: 0.84rem;
+        line-height: 1.52;
+      }
+
+      pre.editable-code {
+        grid-template-columns: 36px minmax(0, 1fr);
+        padding: 10px 10px 10px 0;
+      }
+
+      pre.editable-code code {
+        padding-left: 8px;
+      }
+
+      .line-numbers {
+        width: 36px;
+        padding-right: 6px;
+      }
+
+      .inline-output {
+        font-size: 0.78rem;
+      }
+
+      .title-slide {
+        min-height: 68vh;
+        padding-top: 72px;
+        padding-bottom: 92px;
+      }
+
+      .title-slide .title-lines,
+      .title-slide .title-lines-bottom {
+        left: 14px;
+        right: 14px;
+      }
+
+      .title-slide .course {
+        margin-bottom: 20px;
+      }
+
+      .title-slide h1 {
+        margin-bottom: 26px;
+        line-height: 1.32;
+      }
+
+      .title-slide .topic {
+        margin-bottom: 26px;
+      }
+
+      .title-slide .meta {
+        margin-bottom: 14px;
+      }
     }
 
     @media print {
@@ -2493,6 +2582,7 @@ $$
 
   <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/highlight.min.js"></script>
   <script>
     const samples = {
       beginner_ops: `# 기본: list/dict 핵심 연산
@@ -2875,6 +2965,17 @@ _buf.getvalue()
       return normalizeCodeText(codeEl.textContent || "");
     }
 
+    function highlightCodeBlock(codeEl) {
+      const plain = getCodeText(codeEl);
+      codeEl.classList.add("hljs", "language-python");
+      if (!window.hljs) {
+        codeEl.textContent = plain;
+        return;
+      }
+      const highlighted = window.hljs.highlight(plain, { language: "python" }).value;
+      codeEl.innerHTML = highlighted;
+    }
+
     function updateLineNumbers(codeEl, lineEl) {
       const text = getCodeText(codeEl);
       const lineCount = Math.max(1, text.split("\n").length);
@@ -2901,6 +3002,20 @@ _buf.getvalue()
         codeEl.setAttribute("autocapitalize", "off");
         codeEl.setAttribute("autocorrect", "off");
         codeEl.setAttribute("data-gramm", "false");
+
+        const setPlainEditing = () => {
+          codeEl.textContent = getCodeText(codeEl);
+        };
+
+        codeEl.addEventListener("focus", () => {
+          setPlainEditing();
+          updateLineNumbers(codeEl, lineEl);
+        });
+
+        codeEl.addEventListener("blur", () => {
+          highlightCodeBlock(codeEl);
+          updateLineNumbers(codeEl, lineEl);
+        });
 
         codeEl.addEventListener("keydown", (e) => {
           if (e.key === "Tab") {
@@ -2955,6 +3070,9 @@ _buf.getvalue()
         runner.appendChild(head);
         runner.appendChild(inlineOutput);
         pre.insertAdjacentElement("afterend", runner);
+
+        highlightCodeBlock(codeEl);
+        updateLineNumbers(codeEl, lineEl);
       });
     }
 
