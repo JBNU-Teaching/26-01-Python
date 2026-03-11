@@ -1409,7 +1409,7 @@ print(2 in seen)</code></pre>
     </section>
 
     <section class="slide">
-      <span class="kicker">Part 3 · Dict Basics</span>
+      <span class="kicker">Part 3 · Hash Family (dict/set)</span>
       <h2>딕셔너리 기본: 조회, 추가, 삭제, 안전 조회</h2>
       <pre><code>d: dict[str, str] = {"sample_id": "seq_001", "label": "positive"}
 d["split"] = "train"
@@ -1554,7 +1554,7 @@ $$
     <section class="slide">
       <span class="kicker">Part 3.3 · Set Semantics and Reproducibility</span>
       <h2>Set = membership-centric ADT, but order is not a contract</h2>
-      <p>set은 중복 제거/멤버십 검사에 최적화된 hash family 구조입니다. 반면 순서는 논리 계약이 아니므로 재현성 경로에서는 직접 출력 순서로 쓰면 위험합니다.</p>
+      <p>set은 중복 제거/멤버십 검사에 최적화된 hash family 구조입니다. 반면 순서는 논리 계약이 아니므로 재현성 경로에서는 직접 출력 순서로 쓰면 위험합니다. set을 “키만 있는 dict”로 보면 설계가 명확해집니다.</p>
       <pre><code>A: set[int] = {1, 2, 3, 4}
 B: set[int] = {3, 4, 5, 6}
 print("합집합:", A | B)
@@ -1563,20 +1563,29 @@ print("차집합:", A - B)
 
 tokens: list[str] = ["a", "b", "a", "c", "b"]
 print(list(set(tokens)))               # 순서 비보장
-print(list(dict.fromkeys(tokens)))     # 순서 유지 중복 제거</code></pre>
+print(list(dict.fromkeys(tokens)))     # 순서 유지 중복 제거
+
+vocab: set[str] = {"[PAD]", "[CLS]", "[SEP]"}
+stable_vocab: list[str] = sorted(vocab)  # 직렬화/로그는 정렬 후 고정</code></pre>
       <div class="formula">
 $$
 J(A,B)=\frac{|A\cap B|}{|A\cup B|},\qquad
 |A\cup B|=|A|+|B|-|A\cap B|
 $$
       </div>
+      <div class="formula">
+$$
+T_{\cap}(A,B)=\Theta(\min(|A|,|B|))\ \text{(avg hash lookup)}
+$$
+교집합/차집합은 작은 집합을 기준으로 순회하는 구현이 보통 유리합니다.
+      </div>
       <table>
-        <thead><tr><th>워크로드</th><th>set 적합성</th><th>주의</th></tr></thead>
+        <thead><tr><th>워크로드</th><th>set 적합성</th><th>주의</th><th>검증 포인트</th></tr></thead>
         <tbody>
-          <tr><td>membership 반복 검사</td><td>매우 높음 (avg O(1))</td><td>충돌 편향 입력 주의</td></tr>
-          <tr><td>중복 제거</td><td>높음</td><td>순서 보존이 필요하면 보완 필요</td></tr>
-          <tr><td>정렬/순위 출력</td><td>낮음</td><td>set 결과를 바로 보고용으로 쓰지 않기</td></tr>
-          <tr><td>실험 split leakage 검사</td><td>매우 높음</td><td>교집합 크기 로그 필수</td></tr>
+          <tr><td>membership 반복 검사</td><td>매우 높음 (avg O(1))</td><td>충돌 편향 입력 주의</td><td>입력 분포 바꿔도 지연 분포 유지 여부</td></tr>
+          <tr><td>중복 제거</td><td>높음</td><td>순서 보존이 필요하면 보완 필요</td><td><code>dict.fromkeys</code> 또는 정렬 후 출력</td></tr>
+          <tr><td>정렬/순위 출력</td><td>낮음</td><td>set 결과를 바로 보고용으로 쓰지 않기</td><td>직렬화 전 deterministic order 강제</td></tr>
+          <tr><td>실험 split leakage 검사</td><td>매우 높음</td><td>교집합 크기 로그 필수</td><td><code>len(train_ids & val_ids) == 0</code> assertion</td></tr>
         </tbody>
       </table>
     </section>
@@ -1726,12 +1735,17 @@ $$
       <p>기본 <code>list/dict</code>만으로도 대부분 구현 가능하지만, 연산의 의미가 명확한 경우에는 전용 컨테이너를 쓰는 편이 정확성과 성능을 동시에 개선합니다. 즉 “동작 가능한 구현”보다 “의도를 드러내는 구현”이 유지보수에 유리합니다.</p>
       <div class="cols-2">
         <div class="card">
-          <h3>deque, Counter</h3>
+          <h3>Queue ADT: deque</h3>
           <pre><code>from collections import deque, Counter
 
 q: deque[int] = deque([1, 2, 3])
 q.appendleft(0)
 print(q.popleft())   # 0
+q.append(4)
+q2: deque[int] = deque(maxlen=3)
+for x in [10, 11, 12, 13]:
+    q2.append(x)
+print(list(q2))      # [11, 12, 13]
 
 freq: Counter[str] = Counter("token stream token id token")
 print(freq.most_common(3))</code></pre>
@@ -1762,14 +1776,15 @@ for path, y in samples:
 
 print(dict(by_label))</code></pre>
       <table>
-        <thead><tr><th>컨테이너</th><th>핵심 연산</th><th>왜 기본형보다 유리한가</th></tr></thead>
+        <thead><tr><th>컨테이너</th><th>핵심 연산</th><th>불변식/실패 정책</th><th>왜 기본형보다 유리한가</th></tr></thead>
         <tbody>
-          <tr><td><code>deque</code></td><td><code>appendleft/popleft</code></td><td>양끝 연산 O(1) 보장으로 큐 워크로드에 안정적</td></tr>
-          <tr><td><code>Counter</code></td><td><code>most_common</code></td><td>빈도 분석을 수동 dict 누적보다 간결하게 표현</td></tr>
-          <tr><td><code>defaultdict</code></td><td>지연 초기화</td><td>키 존재 여부 분기 제거로 그룹화 코드 단순화</td></tr>
-          <tr><td><code>ChainMap</code></td><td>계층 조회</td><td>설정 우선순위(실험값 > 기본값)를 명시적으로 관리</td></tr>
+          <tr><td><code>deque</code></td><td><code>appendleft/popleft</code></td><td>FIFO/LIFO 정책 명시, 빈 구조 처리 규칙 고정</td><td>양끝 연산 O(1) 보장으로 큐 워크로드에 안정적</td></tr>
+          <tr><td><code>Counter</code></td><td><code>most_common</code></td><td>음수/0 카운트 처리 정책 명시</td><td>빈도 분석을 수동 dict 누적보다 간결하게 표현</td></tr>
+          <tr><td><code>defaultdict</code></td><td>지연 초기화</td><td>default factory가 상태를 생성함을 문서화</td><td>키 존재 여부 분기 제거로 그룹화 코드 단순화</td></tr>
+          <tr><td><code>ChainMap</code></td><td>계층 조회</td><td>쓰기 대상(첫 맵) 정책 명확화</td><td>설정 우선순위(실험값 > 기본값)를 명시적으로 관리</td></tr>
         </tbody>
       </table>
+      <p class="muted">deque는 양끝 연산에 최적화된 구조입니다. 중간 인덱싱/랜덤 접근이 지배적인 workload라면 list/array 계열로 분리해야 합니다.</p>
       <svg class="infographic" viewBox="0 0 1080 210" role="img" aria-label="ADT와 collections 모듈 매핑">
         <rect x="50" y="58" width="180" height="90" rx="12" fill="#e9f2ff" stroke="#9db7dd"/>
         <text x="140" y="92" text-anchor="middle" font-size="18" font-weight="700" fill="#23426f">Queue ADT</text>
@@ -1877,16 +1892,16 @@ $$
 
     <section class="slide">
       <span class="kicker">Part 4 · ADT Mapping</span>
-      <h2>기본 ADT와 파이썬 구현 전략</h2>
-      <p>동일한 ADT라도 입력 분포와 실패 모드(빈 구조, 동시 접근, 큰 키 객체)에 따라 구현 선택이 달라집니다. 표를 “연산 복잡도”뿐 아니라 “운영 리스크” 관점으로 읽어야 합니다.</p>
+      <h2>형식 명세를 구현 매핑으로 닫기</h2>
+      <p>Part 1.5의 명세 템플릿(State/Operation/Precondition/Invariant)을 실제 구현 선택으로 연결합니다. 아래 표는 “무엇을 빠르게 하려는가”와 함께 “어떻게 실패를 다룰 것인가”까지 포함합니다.</p>
       <table>
-        <thead><tr><th>ADT</th><th>핵심 연산</th><th>표준 구현</th><th>복잡도</th><th>적용 맥락</th></tr></thead>
+        <thead><tr><th>ADT</th><th>핵심 연산</th><th>표준 구현</th><th>불변식/실패 정책</th><th>적용 맥락</th></tr></thead>
         <tbody>
-          <tr><td>Stack</td><td>push/pop/top</td><td><code>list</code></td><td>끝 연산 O(1)</td><td>백트래킹, Undo</td></tr>
-          <tr><td>Queue</td><td>enqueue/dequeue</td><td><code>collections.deque</code></td><td>양 끝 O(1)</td><td>BFS, 스트리밍</td></tr>
-          <tr><td>Priority Queue</td><td>push/pop-min</td><td><code>heapq</code></td><td>O(log n)</td><td>스케줄링, 최단경로</td></tr>
-          <tr><td>Ordered Map</td><td>탐색/순회</td><td><code>dict</code> + 정렬 키</td><td>조회 O(1)</td><td>사전+정렬 출력</td></tr>
-          <tr><td>Membership Set</td><td>contains/add/remove</td><td><code>set</code></td><td>평균 O(1)</td><td>중복 제거, 방문 체크</td></tr>
+          <tr><td>Stack</td><td>push/pop/top</td><td><code>list</code></td><td>empty-pop 정책 고정, LIFO invariant 유지</td><td>백트래킹, Undo</td></tr>
+          <tr><td>Queue</td><td>enqueue/dequeue</td><td><code>collections.deque</code></td><td>FIFO invariant, 앞삭제 O(1) 보장</td><td>BFS, 스트리밍</td></tr>
+          <tr><td>Priority Queue</td><td>push/pop-min</td><td><code>heapq</code></td><td>heap property + tie-break 필드 명시</td><td>스케줄링, 최단경로</td></tr>
+          <tr><td>Ordered Map</td><td>탐색/순회</td><td><code>dict</code> + 정렬 키</td><td>missing-key 정책 + 순회 중 변경 금지</td><td>사전+정렬 출력</td></tr>
+          <tr><td>Membership Set</td><td>contains/add/remove</td><td><code>set</code></td><td>순서 비계약, 결과 직렬화 시 정렬</td><td>중복 제거, 방문 체크</td></tr>
         </tbody>
       </table>
       <div class="cols-2">
@@ -2104,71 +2119,82 @@ $$
     </section>
 
     <section class="slide">
-      <span class="kicker">Part 6 · Workload Patterns, Semantics &amp; Verification</span>
-      <h2>워크로드 기반 알고리즘 패턴 4선</h2>
-      <p>알고리즘 설계의 첫 단계는 “자료구조를 고르는 것”입니다. 아래 4개 패턴은 연구 코드에서 반복적으로 등장하는 형태이며, 각 패턴은 특정 연산을 빠르게 하기 위해 자료구조를 선택한 사례입니다.</p>
+      <span class="kicker">Part 5.2 · Multi-Workload Benchmark Cases</span>
+      <h2>자료구조별 실험 스펙트럼 확장: membership / priority / queue</h2>
+      <p>queue 한 사례만으로는 구조 선택 원칙이 닫히지 않습니다. membership 중심, priority 중심 workload까지 함께 측정해야 선택 프레임워크가 검증됩니다.</p>
+      <pre><code>import random, timeit, statistics as st, heapq
+
+N = 120_000
+xs = list(range(N))
+s = set(xs)
+queries = [random.randint(0, N - 1) for _ in range(30_000)]
+
+t_list = timeit.repeat("sum((q in xs) for q in queries)", globals=globals(), number=1, repeat=8)
+t_set = timeit.repeat("sum((q in s) for q in queries)", globals=globals(), number=1, repeat=8)
+print("membership speedup:", st.mean(t_list) / st.mean(t_set))
+
+arr = [random.random() for _ in range(N)]
+k = 128
+t_sort = timeit.repeat("sorted(arr)[-k:]", globals=globals(), number=1, repeat=8)
+t_heap = timeit.repeat("heapq.nlargest(k, arr)", globals=globals(), number=1, repeat=8)
+print("top-k speedup:", st.mean(t_sort) / st.mean(t_heap))</code></pre>
+      <table>
+        <thead><tr><th>실험 축</th><th>비교 구조</th><th>예상 복잡도</th><th>해석 포인트</th></tr></thead>
+        <tbody>
+          <tr><td>Queue front delete</td><td><code>list.pop(0)</code> vs <code>deque.popleft()</code></td><td>O(n) vs O(1)</td><td>N 증가 시 기울기 차이 확인</td></tr>
+          <tr><td>Membership lookup</td><td><code>list</code> vs <code>set</code></td><td>O(n) vs avg O(1)</td><td>질의 수가 늘수록 speedup 확대</td></tr>
+          <tr><td>Top-k extraction</td><td>full sort vs <code>heapq.nlargest</code></td><td>O(n log n) vs O(n log k)</td><td>k가 작을수록 heap 이점 확대</td></tr>
+          <tr><td>Tail stability</td><td>모든 구조</td><td>p95/p99</td><td>평균보다 tail latency로 운영 리스크 판단</td></tr>
+        </tbody>
+      </table>
+      <p class="muted">최종 보고서에는 Python 버전/CPU/메모리/반복 수/시드/입력 분포를 함께 기록해 재현성을 확보합니다.</p>
+    </section>
+
+    <section class="slide">
+      <span class="kicker">Part 6 · Semantic Hazards &amp; Validation</span>
+      <h2>자료구조 의미론 위험 지도: 실패 모드에서 테스트 전략까지</h2>
+      <p>후반부의 목적은 새 문법을 늘리는 것이 아니라, 앞에서 배운 구조를 실제 연구 코드에서 안전하게 운영하는 것입니다. 핵심은 “어떤 실패가 생기고, 어떤 검증으로 막을 것인가”를 구조별로 고정하는 것입니다.</p>
       <div class="cols-2">
         <div class="card">
-          <h3>BFS (Queue)</h3>
-          <pre><code>from collections import deque
-
-def bfs(graph: dict[str, list[str]], start: str) -> list[str]:
-    q: deque[str]
-    seen: set[str]
-    q, seen = deque([start]), {start}
-    order: list[str] = []
-    while q:
-      v = q.popleft()
-      order.append(v)
-      for nxt in graph[v]:
-        if nxt not in seen:
-          seen.add(nxt); q.append(nxt)
-    return order
-
-g: dict[str, list[str]] = {"n0": ["n1", "n2"], "n1": ["n3"], "n2": [], "n3": []}
-print(bfs(g, "n0"))</code></pre>
+          <h3>Hazard 1: aliasing</h3>
+          <pre><code>cfg = {"optim": {"lr": 1e-3}}
+trial = cfg.copy()          # shallow
+trial["optim"]["lr"] = 5e-4
+print(cfg["optim"]["lr"])   # 5e-4 (원본 오염)</code></pre>
         </div>
         <div class="card">
-          <h3>Top-K (Heap)</h3>
-          <pre><code>import heapq
-
-def topk(nums: list[int], k: int) -> list[int]:
-    return heapq.nlargest(k, nums)
-
-print(topk([0.71, 0.65, 0.84, 0.69, 0.81], 3))</code></pre>
+          <h3>Hazard 2: key instability</h3>
+          <pre><code># list key는 불가, mutable key는 계약 위반
+cache: dict[tuple[str, int], float] = {}
+key = ("run_a", 64)
+cache[key] = 0.91
+print(cache[key])</code></pre>
         </div>
       </div>
       <div class="cols-2">
         <div class="card">
-          <h3>빈도 분석 (Counter)</h3>
-          <pre><code>from collections import Counter
-tokens: list[str] = "a b a c b a".split()
-print(Counter(tokens).most_common())</code></pre>
+          <h3>Hazard 3: mutation during iteration</h3>
+          <pre><code>d = {"a": 1, "b": 2, "c": 3}
+for k in list(d):           # snapshot 후 변경
+    if k == "b":
+        del d[k]</code></pre>
         </div>
         <div class="card">
-          <h3>슬라이딩 윈도우 (dict)</h3>
-          <pre><code>def has_dup_k(arr: list[int], k: int) -> bool:
-    last: dict[int, int] = {}
-    for i, x in enumerate(arr):
-      if x in last and i - last[x] <= k:
-        return True
-      last[x] = i
-    return False
-
-print(has_dup_k([1, 2, 3, 1], 3))
-print(has_dup_k([1, 2, 3, 1], 2))</code></pre>
+          <h3>Hazard 4: non-deterministic order</h3>
+          <pre><code>labels = {"dog", "cat", "bird"}
+print(sorted(labels))       # 직렬화/로그는 정렬 후 고정</code></pre>
         </div>
       </div>
       <table>
-        <thead><tr><th>패턴</th><th>핵심 자료구조</th><th>지배 연산</th><th>평균 비용</th></tr></thead>
+        <thead><tr><th>위험</th><th>주요 구조</th><th>실패 증상</th><th>검증 규칙</th></tr></thead>
         <tbody>
-          <tr><td>BFS</td><td><code>deque</code> + <code>set</code></td><td><code>popleft</code>, membership</td><td>O(V+E)</td></tr>
-          <tr><td>Top-K</td><td><code>heapq</code></td><td><code>heappush/pop</code></td><td>O(n log k)</td></tr>
-          <tr><td>빈도 분석</td><td><code>Counter</code></td><td>키 누적 카운트</td><td>O(n)</td></tr>
-          <tr><td>슬라이딩 윈도우</td><td><code>dict</code></td><td>최근 위치 조회/갱신</td><td>O(n)</td></tr>
+          <tr><td>참조 공유(aliasing)</td><td>list/dict nested</td><td>실험 설정/캐시가 연쇄 오염</td><td>deepcopy 또는 immutable snapshot</td></tr>
+          <tr><td>키 계약 위반</td><td>dict/set</td><td>조회 실패, 충돌 지연 증가</td><td>immutable key + hash/eq 테스트</td></tr>
+          <tr><td>순회 중 변경</td><td>dict/list</td><td>런타임 오류/누락 처리</td><td>snapshot(list(...)) 후 변경</td></tr>
+          <tr><td>순서 비결정성</td><td>set</td><td>로그/직렬화 재현성 저하</td><td>sorted() 또는 deterministic pipeline</td></tr>
         </tbody>
       </table>
-      <p class="muted">실무에서는 알고리즘 이름보다 “주연산이 무엇인지”를 먼저 파악하면 구현 선택이 빨라집니다. 예: 방문 체크는 set, 최근성 관리는 deque, top-k는 heap.</p>
+      <p class="muted">핵심 메시지: 자료구조는 성능 도구이자 의미론 계약입니다. 검증 없는 선택은 운영 단계에서 재현성 결함으로 되돌아옵니다.</p>
     </section>
 
     <section class="slide">
