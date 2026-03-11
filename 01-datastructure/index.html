@@ -1112,6 +1112,32 @@ print("one int    :", sys.getsizeof(0))</code></pre>
     </section>
 
     <section class="slide">
+      <span class="kicker">Part 1.5 · Formal ADT Spec</span>
+      <h2>형식 명세를 먼저 정의하고 구현을 검증한다</h2>
+      <p>대학원 수업의 기준은 “코드가 돌아간다”가 아니라 “왜 항상 맞는가”입니다. 따라서 자료구조 구현 전에 연산 계약(pre/postcondition)과 불변식을 먼저 고정합니다.</p>
+      <div class="formula">
+$$
+\text{Stack ADT}:\ S=\text{sequence},\ 
+\operatorname{push}(x):S' = S\circ[x]
+$$
+$$
+\operatorname{pop}():\ |S|>0,\ \text{return }\operatorname{last}(S),\ 
+S'=\operatorname{prefix}(S,|S|-1)
+$$
+      </div>
+      <table>
+        <thead><tr><th>항목</th><th>명세 질문</th><th>예시</th></tr></thead>
+        <tbody>
+          <tr><td>State</td><td>상태공간은 무엇인가?</td><td>Stack: sequence, Set: unique elements</td></tr>
+          <tr><td>Operation</td><td>입력/출력 계약은?</td><td><code>pop(): T</code>, <code>contains(x): bool</code></td></tr>
+          <tr><td>Precondition</td><td>호출 가능 조건은?</td><td><code>pop</code>는 non-empty</td></tr>
+          <tr><td>Invariant</td><td>항상 유지할 성질은?</td><td>LIFO, uniqueness, ordering policy</td></tr>
+        </tbody>
+      </table>
+      <p class="muted">이 템플릿을 이후 list/dict/set/deque/heapq 분석에 동일하게 적용합니다.</p>
+    </section>
+
+    <section class="slide">
       <span class="kicker">Part 2 · List as Mutable Sequence</span>
       <h2>List = mutable sequence of object references</h2>
       <pre><code>a: list[int] = [10, 20, 30, 40]
@@ -1220,7 +1246,7 @@ print(a, b)</code></pre>
 
     <section class="slide">
       <span class="kicker">Part 2.3 · Indexing & Slicing</span>
-      <h2>Indexing and Slice Semantics: 경계조건, clipping, 상태변화</h2>
+      <h2>Indexing & Slice Semantics: 경계조건, clipping, 상태변화</h2>
       <p>단일 인덱스와 슬라이스는 실패 동작이 다릅니다. 단일 인덱스는 범위를 벗어나면 예외가 나지만, 슬라이스는 범위를 자동 clipping해 빈 리스트를 포함한 결과를 돌려줄 수 있습니다.</p>
       <pre><code>arr: list[int] = [0, 1, 2, 3, 4, 5, 6]
 print(arr[100:200])   # []  (slice clipping)
@@ -1503,7 +1529,60 @@ $$
     </section>
 
     <section class="slide">
-      <span class="kicker">Part 3.2 · Lookup Policies & Failure Modes</span>
+      <span class="kicker">Part 3.2 · Dict as Hash Table Instance</span>
+      <h2>해시 테이블 이론에서 dict 실전 규칙으로 연결하기</h2>
+      <p>Foundation의 해시 이론은 dict 장에서 직접 회수되어야 합니다. 평균 O(1)은 로드 팩터, 해시 분산, 키 불변성 가정을 만족할 때만 유지됩니다.</p>
+      <div class="formula">
+$$
+\alpha=\frac{n}{m},\quad
+\mathbb{E}[\text{lookup}] \approx O(1+\alpha)
+$$
+\(\alpha\) 증가, 키 분산 악화, hash/eq 불일치는 tail latency를 증가시킵니다.
+      </div>
+      <table>
+        <thead><tr><th>이론 가정</th><th>dict 실전 규칙</th><th>실패 모드</th></tr></thead>
+        <tbody>
+          <tr><td>균등 해싱</td><td>키 정규화/키 타입 고정</td><td>충돌 집중으로 조회 지연</td></tr>
+          <tr><td>키 불변성</td><td>tuple/frozen dataclass 키 사용</td><td>삽입 후 조회 실패</td></tr>
+          <tr><td>동등성-해시 일치</td><td><code>__eq__</code>/<code>__hash__</code> 계약 테스트</td><td>동등 객체 중복 저장</td></tr>
+          <tr><td>적절한 리사이즈</td><td>대형 입력에서 벤치마크로 확인</td><td>간헐적 latency spike</td></tr>
+        </tbody>
+      </table>
+      <p class="muted">요약: dict는 “그냥 빠른 맵”이 아니라 가정 위에서 성능이 성립하는 해시 테이블 구현입니다.</p>
+    </section>
+
+    <section class="slide">
+      <span class="kicker">Part 3.3 · Set Semantics and Reproducibility</span>
+      <h2>Set = membership-centric ADT, but order is not a contract</h2>
+      <p>set은 중복 제거/멤버십 검사에 최적화된 hash family 구조입니다. 반면 순서는 논리 계약이 아니므로 재현성 경로에서는 직접 출력 순서로 쓰면 위험합니다.</p>
+      <pre><code>A: set[int] = {1, 2, 3, 4}
+B: set[int] = {3, 4, 5, 6}
+print("합집합:", A | B)
+print("교집합:", A & B)
+print("차집합:", A - B)
+
+tokens: list[str] = ["a", "b", "a", "c", "b"]
+print(list(set(tokens)))               # 순서 비보장
+print(list(dict.fromkeys(tokens)))     # 순서 유지 중복 제거</code></pre>
+      <div class="formula">
+$$
+J(A,B)=\frac{|A\cap B|}{|A\cup B|},\qquad
+|A\cup B|=|A|+|B|-|A\cap B|
+$$
+      </div>
+      <table>
+        <thead><tr><th>워크로드</th><th>set 적합성</th><th>주의</th></tr></thead>
+        <tbody>
+          <tr><td>membership 반복 검사</td><td>매우 높음 (avg O(1))</td><td>충돌 편향 입력 주의</td></tr>
+          <tr><td>중복 제거</td><td>높음</td><td>순서 보존이 필요하면 보완 필요</td></tr>
+          <tr><td>정렬/순위 출력</td><td>낮음</td><td>set 결과를 바로 보고용으로 쓰지 않기</td></tr>
+          <tr><td>실험 split leakage 검사</td><td>매우 높음</td><td>교집합 크기 로그 필수</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="slide">
+      <span class="kicker">Part 3.4 · Lookup Policies & Failure Modes</span>
       <h2>딕셔너리 실패 모드: 조회 정책과 안전성</h2>
       <p>딕셔너리는 키 기반 접근이 핵심이므로, 실전에서는 “키가 없을 때의 정책”을 먼저 설계해야 합니다. 예외를 발생시킬지, 기본값을 줄지, 자동 생성할지를 합의하지 않으면 버그가 잠복합니다.</p>
       <div class="cols-2">
@@ -1536,7 +1615,32 @@ print(d, v)</code></pre>
     </section>
 
     <section class="slide">
-      <span class="kicker">Part 3.3 · Hash Map Design Patterns</span>
+      <span class="kicker">Part 3.5 · Dict Views and Mutation Interaction</span>
+      <h2>dynamic view semantics: <code>keys/items/values</code>와 변경 상호작용</h2>
+      <p>dict view는 snapshot이 아니라 live view입니다. 순회 중 구조 변경이 섞이면 논리 오류 또는 런타임 오류가 발생할 수 있으므로 materialization 전략을 구분해야 합니다.</p>
+      <pre><code>d: dict[str, int] = {"a": 1, "b": 2, "c": 3}
+view = d.items()              # live view
+d["d"] = 4
+print(list(view))             # 변경 반영
+
+for k in list(d.keys()):      # snapshot 후 안전 삭제
+    if k == "b":
+        del d[k]
+print(d)</code></pre>
+      <table>
+        <thead><tr><th>표현</th><th>의미</th><th>적합한 사용</th></tr></thead>
+        <tbody>
+          <tr><td><code>d.items()</code></td><td>live view</td><td>읽기 중심 동적 관측</td></tr>
+          <tr><td><code>list(d.items())</code></td><td>snapshot copy</td><td>순회 중 구조 변경 필요 시</td></tr>
+          <tr><td><code>for k in d:</code></td><td>키 순회</td><td>변경 없는 조회 루프</td></tr>
+          <tr><td><code>for k in list(d):</code></td><td>복사 후 순회</td><td>삭제/삽입 동반 루프</td></tr>
+        </tbody>
+      </table>
+      <p class="muted">dict는 insertion order를 보존하지만, view는 동적이며 set처럼 order-insensitive한 동치 개념과는 구분해서 이해해야 합니다.</p>
+    </section>
+
+    <section class="slide">
+      <span class="kicker">Part 3.6 · Hash Map Design Patterns</span>
       <h2>해시 기반 매핑 패턴: 집계, 병합, 계층 구성</h2>
       <p>이 슬라이드는 “연산은 같아도 의도가 다른 패턴”을 구분하는 데 목적이 있습니다. <code>comprehension</code>은 결정 규칙을 데이터 구조로 압축할 때, <code>defaultdict/Counter</code>는 누적·집계 로직의 조건 분기를 제거할 때, 병합 연산은 구성 계층(기본값/실험값/런타임값)을 합성할 때 가장 효과적입니다.</p>
       <div class="cols-2">
@@ -1569,94 +1673,7 @@ print(a | b)  # {'x':1, 'y':99, 'z':3}</code></pre>
     </section>
 
     <section class="slide">
-      <span class="kicker">Part 3.4 · Unified Selection Framework</span>
-      <h2>자료구조 선택 프레임워크: 연산 + 메모리 + 리스크</h2>
-      <p>자료구조 선택은 문법 취향이 아니라 연산 분포와 실패 정책의 함수입니다. 아래 표를 기준으로 “주요 연산 2개 + 허용 가능한 실패 모드 1개”를 먼저 고정한 뒤 구현을 선택하면 설계 일관성이 높아집니다.</p>
-      <table>
-        <thead><tr><th>구조</th><th>핵심 강점</th><th>약점/주의</th><th>주요 연산 복잡도</th><th>대표 사용 장면</th></tr></thead>
-        <tbody>
-          <tr><td><code>list</code></td><td>순서 보존, 인덱스 O(1), 끝 삽입 상환 O(1)</td><td>앞/중간 삽입·삭제 O(n)</td><td><code>a[i]</code> O(1), <code>append</code> amortized O(1), <code>pop(0)</code> O(n)</td><td>배치 버퍼, 순차 누적, 샘플 셔플</td></tr>
-          <tr><td><code>dict</code></td><td>키 기반 평균 O(1) 조회/갱신</td><td>키 설계 불량 시 충돌·논리 오류</td><td><code>get/set/del</code> avg O(1), <code>items</code> 순회 O(n)</td><td>메타데이터, 상태 사전, 캐시</td></tr>
-          <tr><td><code>set</code></td><td>중복 제거, membership 평균 O(1)</td><td>순서/인덱스 없음</td><td><code>in/add/remove</code> avg O(1), 집합 연산 O(n+m)</td><td>토큰 중복 제거, 방문 체크</td></tr>
-          <tr><td><code>tuple</code></td><td>불변 레코드, 해시 키로 안정적</td><td>부분 수정 시 재생성 필요</td><td>인덱스 O(1), 생성 O(n)</td><td>파라미터 키, 스냅샷 레코드</td></tr>
-          <tr><td><code>deque</code></td><td>양끝 삽입/삭제 O(1)</td><td>임의 인덱스 접근 비효율</td><td><code>append/popleft</code> O(1)</td><td>미니배치 큐, 스트리밍 버퍼</td></tr>
-          <tr><td><code>heapq</code></td><td>최솟값/우선순위 처리 효율</td><td>전체 정렬 뷰가 필요하면 별도 비용</td><td><code>heappush/pop</code> O(log n)</td><td>우선 작업 큐, top-k 후보 유지</td></tr>
-        </tbody>
-      </table>
-      <svg class="infographic" viewBox="0 0 1080 240" role="img" aria-label="연산 요구 기반 자료구조 선택 결정 트리">
-        <rect x="430" y="20" width="220" height="56" rx="10" fill="#e9f2ff" stroke="#9bb6de"/>
-        <text x="540" y="54" text-anchor="middle" font-size="18" font-weight="700" fill="#27436d">주요 연산이 무엇인가?</text>
-
-        <line x1="540" y1="76" x2="540" y2="104" stroke="#4f6b92" stroke-width="3"/>
-        <line x1="240" y1="104" x2="840" y2="104" stroke="#4f6b92" stroke-width="3"/>
-        <line x1="240" y1="104" x2="240" y2="124" stroke="#4f6b92" stroke-width="3"/>
-        <line x1="540" y1="104" x2="540" y2="124" stroke="#4f6b92" stroke-width="3"/>
-        <line x1="840" y1="104" x2="840" y2="124" stroke="#4f6b92" stroke-width="3"/>
-
-        <rect x="108" y="124" width="264" height="84" rx="12" fill="#f0edff" stroke="#b1a3e7"/>
-        <text x="240" y="156" text-anchor="middle" font-size="18" font-weight="700" fill="#3f2f68">순서 + 끝 삽입 중심</text>
-        <text x="240" y="184" text-anchor="middle" font-size="15" fill="#564783">list / deque</text>
-
-        <rect x="408" y="124" width="264" height="84" rx="12" fill="#ebf8ef" stroke="#9ecfb2"/>
-        <text x="540" y="156" text-anchor="middle" font-size="18" font-weight="700" fill="#1e4b33">키 기반 조회 중심</text>
-        <text x="540" y="184" text-anchor="middle" font-size="15" fill="#36684c">dict / set</text>
-
-        <rect x="708" y="124" width="264" height="84" rx="12" fill="#fff3ea" stroke="#e1b8a0"/>
-        <text x="840" y="156" text-anchor="middle" font-size="18" font-weight="700" fill="#743f24">우선순위/최솟값 중심</text>
-        <text x="840" y="184" text-anchor="middle" font-size="15" fill="#8a5a3d">heapq / bisect</text>
-      </svg>
-      <p class="figure-caption">선택 순서: 연산 우선순위 -> 실패 정책 -> 재현성 요구(순서/불변성) 순으로 고정하면 의사결정 품질이 높아집니다.</p>
-      <div class="formula">
-$$
-\text{Choose }D^\*=\arg\min_D \left(\sum_{op} w_{op}T_D(op) + \lambda M_D + \mu R_D + \nu G_D\right)
-$$
-\(R_D\): 실패 위험, \(G_D\): 검증/가독성 비용. 즉 성능과 검증 가능성을 동시에 최소화
-      </div>
-    </section>
-
-    <section class="slide">
-      <span class="kicker">Part 3.5 · Set Operations</span>
-      <h2>Set 상세: 수학적 집합 연산과 응용</h2>
-      <p>set은 해시 기반이라 중복 제거와 멤버십 테스트가 매우 빠릅니다. 데이터 정제, 그래프 탐색 방문 체크, 유사도 계산 등에서 핵심 역할을 합니다.</p>
-      <p>집합 연산은 데이터 전처리에서 강력합니다. 예를 들어 실험군/대조군의 표본 겹침을 교집합으로 계산하거나, 버전별 토큰 차이를 차집합으로 계산하면 데이터 품질을 정량적으로 점검할 수 있습니다. 문자열 비교를 단순 반복문으로 처리하는 것보다 집합 연산으로 변환해 해석하는 편이 명확하고 견고합니다.</p>
-      <pre><code>A: set[int] = {1, 2, 3, 4}
-B: set[int] = {3, 4, 5, 6}
-print("합집합:", A | B)
-print("교집합:", A & B)
-print("차집합:", A - B)
-print("대칭차:", A ^ B)
-print("부분집합:", {1, 2} <= A)</code></pre>
-      <pre><code># 토큰 기반 데이터셋 중복/누락 점검
-train_ids: set[str] = {"id1", "id2", "id3", "id4"}
-valid_ids: set[str] = {"id4", "id5"}
-
-leak: set[str] = train_ids & valid_ids   # split leakage 검사
-only_train: set[str] = train_ids - valid_ids
-print("leak ids:", leak)
-print("train-only:", only_train)</code></pre>
-      <div class="formula">
-$$
-J(A,B)=\frac{|A\cap B|}{|A\cup B|}
-$$
-텍스트 토큰 유사도, 추천 시스템 전처리에서 자주 사용
-      </div>
-      <div class="formula">
-$$
-|A\cup B| = |A| + |B| - |A\cap B|
-$$
-      </div>
-      <table>
-        <thead><tr><th>연산</th><th>평균 복잡도</th><th>비고</th></tr></thead>
-        <tbody>
-          <tr><td><code>x in s</code></td><td>O(1)</td><td>해시 충돌 많으면 느려질 수 있음</td></tr>
-          <tr><td><code>add/remove/discard</code></td><td>O(1)</td><td><code>remove</code>는 없으면 예외</td></tr>
-          <tr><td><code>union/intersection</code></td><td>O(len(s)+len(t))</td><td>입력 크기 합에 비례</td></tr>
-        </tbody>
-      </table>
-    </section>
-
-    <section class="slide">
-      <span class="kicker">Part 3.6 · Immutable Record Design</span>
+      <span class="kicker">Part 3.7 · Immutable Record Design</span>
       <h2>Tuple 상세: 불변 시퀀스와 구조적 데이터 표현</h2>
       <p>tuple은 “값 객체(value object)” 모델에 적합합니다. 실험 파라미터, 다중 키, 좌표값처럼 변경되면 안 되는 구조를 표현할 때 의미적으로도 명확합니다.</p>
       <p>특히 튜플은 “상태가 변하면 다른 객체가 되어야 하는” 문제에서 유용합니다. 예를 들어 캐시 키, 그래프 좌표, 파이프라인 스냅샷과 같이 동일성(identity)보다 값(value) 의미가 중요한 경우, 튜플을 사용하면 의도치 않은 변경을 구조적으로 차단할 수 있습니다.</p>
@@ -1691,10 +1708,20 @@ t=(x_1,\dots,x_k),\ t'=(x_1,\dots,x_k)\Rightarrow t=t'
 $$
 \(\Rightarrow\) 값 동등성(value equality)이 키 안정성을 제공
       </div>
+      <table>
+        <thead><tr><th>표현</th><th>장점</th><th>한계</th><th>권장 사용</th></tr></thead>
+        <tbody>
+          <tr><td><code>tuple</code></td><td>가볍고 hash key로 안정적</td><td>필드 의미가 암묵적</td><td>짧은 키/좌표/스냅샷</td></tr>
+          <tr><td><code>namedtuple</code></td><td>필드명 접근 + tuple 호환</td><td>확장/검증 로직 제한</td><td>읽기 중심 레코드</td></tr>
+          <tr><td><code>@dataclass(frozen=True)</code></td><td>명시적 필드 + 타입 + 불변성</td><td>tuple 대비 오버헤드</td><td>도메인 모델/공개 계약</td></tr>
+          <tr><td><code>@dataclass</code>(mutable)</td><td>갱신 편의성</td><td>hash key로 부적합 가능</td><td>내부 상태 객체</td></tr>
+        </tbody>
+      </table>
+      <p class="muted">단일 원소 tuple은 반드시 쉼표가 필요합니다: <code>("single",)</code>.</p>
     </section>
 
     <section class="slide">
-      <span class="kicker">Part 3.7 · Specialized Containers</span>
+      <span class="kicker">Part 3.8 · Specialized Containers</span>
       <h2><code>collections</code> 모듈로 ADT 구현 정밀화</h2>
       <p>기본 <code>list/dict</code>만으로도 대부분 구현 가능하지만, 연산의 의미가 명확한 경우에는 전용 컨테이너를 쓰는 편이 정확성과 성능을 동시에 개선합니다. 즉 “동작 가능한 구현”보다 “의도를 드러내는 구현”이 유지보수에 유리합니다.</p>
       <div class="cols-2">
@@ -1774,7 +1801,36 @@ print(dict(by_label))</code></pre>
     </section>
 
     <section class="slide">
-      <span class="kicker">Part 3.8 · Ordered Structures (Sort/Bisect)</span>
+      <span class="kicker">Part 3.9 · Heap-Based Priority Queue</span>
+      <h2><code>heapq</code>: root-min 보장과 tie-break 설계</h2>
+      <p>heap는 “완전 정렬”이 아니라 “최솟값 접근”을 빠르게 하는 구조입니다. 우선순위 업데이트/임의 삭제는 직접적이지 않으므로 lazy deletion이나 재삽입 전략을 함께 설계해야 합니다.</p>
+      <pre><code>import heapq
+from dataclasses import dataclass, field
+
+@dataclass(order=True)
+class Job:
+    priority: int
+    seq: int
+    name: str = field(compare=False)
+
+h: list[Job] = []
+heapq.heappush(h, Job(1, 0, "eval"))
+heapq.heappush(h, Job(1, 1, "train"))
+heapq.heappush(h, Job(0, 2, "warmup"))
+print(heapq.heappop(h))</code></pre>
+      <table>
+        <thead><tr><th>연산</th><th>복잡도</th><th>코멘트</th></tr></thead>
+        <tbody>
+          <tr><td><code>heappush/heappop</code></td><td>O(log n)</td><td>top 우선순위 유지</td></tr>
+          <tr><td><code>h[0]</code></td><td>O(1)</td><td>최솟값만 즉시 접근</td></tr>
+          <tr><td>priority update</td><td>직접 지원 약함</td><td>재삽입 + stale 무시 전략 필요</td></tr>
+          <tr><td>arbitrary delete</td><td>비효율적</td><td>빈번하면 다른 구조 검토</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="slide">
+      <span class="kicker">Part 3.10 · Ordered Structures (Sort/Bisect)</span>
       <h2>Bisect 중심의 ordered search 패턴</h2>
       <p>정렬 자체의 의미론은 Part 2.6에서 다뤘고, 여기서는 “정렬된 리스트를 검색/삽입하는 방법”에 집중합니다. 핵심은 탐색 O(log n), 삽입 O(n)의 비대칭입니다.</p>
       <pre><code>import bisect
@@ -1794,6 +1850,29 @@ print(arr[bisect.bisect_left(arr, 35)])</code></pre>
         </tbody>
       </table>
       <p class="muted">삽입이 잦은 온라인 시나리오에서는 정렬 리스트 + bisect보다 heap/tree 계열 구조가 더 유리할 수 있습니다.</p>
+    </section>
+
+    <section class="slide">
+      <span class="kicker">Part 3.11 · Unified Selection Framework</span>
+      <h2>자료구조 선택 프레임워크: 연산 + 메모리 + 리스크 + 검증비용</h2>
+      <p>selection framework는 특정 자료구조 장의 부록이 아니라, 전체 구조군(list/dict/set/tuple/deque/heapq/bisect)을 본 뒤 적용하는 의사결정 규칙입니다.</p>
+      <div class="formula">
+$$
+\text{Choose }D^\*=\arg\min_D \left(\sum_{op} w_{op}T_D(op) + \lambda M_D + \mu R_D + \nu G_D\right)
+$$
+\(R_D\): 실패 리스크, \(G_D\): 검증/가독성 비용
+      </div>
+      <table>
+        <thead><tr><th>시나리오</th><th>핵심 연산</th><th>우선 후보</th><th>근거</th></tr></thead>
+        <tbody>
+          <tr><td>미니배치 큐 처리</td><td>append + popleft</td><td>deque</td><td>양끝 연산 O(1)</td></tr>
+          <tr><td>실험 상태/메타 관리</td><td>get/set/del</td><td>dict</td><td>평균 O(1) 조회</td></tr>
+          <tr><td>중복 제거 + membership</td><td>contains/add</td><td>set</td><td>평균 O(1) membership</td></tr>
+          <tr><td>top-k 후보 유지</td><td>push/pop-min</td><td>heapq</td><td>O(log n)</td></tr>
+          <tr><td>정렬배열 경계 검색</td><td>left/right bound</td><td>bisect</td><td>검색 O(log n), 삽입 O(n)</td></tr>
+        </tbody>
+      </table>
+      <p class="muted">보고서/논문에는 가중치(\(w,\lambda,\mu,\nu\))와 실패 정책 가정까지 명시해야 선택 근거가 재현됩니다.</p>
     </section>
 
     <section class="slide">
@@ -1831,33 +1910,7 @@ print(arr[bisect.bisect_left(arr, 35)])</code></pre>
     </section>
 
     <section class="slide">
-      <span class="kicker">Part 4.1 · Formal ADT Spec</span>
-      <h2>형식 명세를 먼저 정의하고 구현을 검증한다</h2>
-      <p>대학원 수업의 기준은 “어떻게 코딩했는가”보다 “왜 항상 맞는가”입니다. 따라서 구현 전에 연산 계약(pre/postcondition)과 불변식을 먼저 고정합니다.</p>
-      <div class="formula">
-$$
-\text{Stack ADT}:\ S=\text{sequence},\ 
-\operatorname{push}(x):S' = S\circ[x]
-$$
-$$
-\operatorname{pop}():\ |S|>0,\ \text{return }\operatorname{last}(S),\ 
-S'=\operatorname{prefix}(S,|S|-1)
-$$
-      </div>
-      <table>
-        <thead><tr><th>항목</th><th>명세 질문</th><th>예시</th></tr></thead>
-        <tbody>
-          <tr><td>State</td><td>자료의 상태공간은 무엇인가?</td><td>Stack: sequence, Set: unique elements</td></tr>
-          <tr><td>Operation</td><td>연산의 입력/출력은 무엇인가?</td><td><code>pop(): T</code>, <code>contains(x): bool</code></td></tr>
-          <tr><td>Precondition</td><td>호출 가능 조건은?</td><td><code>pop</code>는 non-empty에서만 허용</td></tr>
-          <tr><td>Invariant</td><td>항상 유지되어야 하는 성질은?</td><td>LIFO, uniqueness, ordering policy</td></tr>
-        </tbody>
-      </table>
-      <p class="muted">이 단계에서 명세가 불완전하면 구현/테스트를 아무리 늘려도 결함이 반복됩니다.</p>
-    </section>
-
-    <section class="slide">
-      <span class="kicker">Part 4.2 · Implementations</span>
+      <span class="kicker">Part 4.1 · Implementations</span>
       <h2>명세를 파이썬 구현으로 옮기기: 예외 정책과 tie-break 규칙</h2>
       <pre><code>from dataclasses import dataclass, field
 from typing import Generic, TypeVar
@@ -1909,8 +1962,8 @@ print(sorted(jobs))</code></pre>
     </section>
 
     <section class="slide">
-      <span class="kicker">Part 4.3 · Type Contracts</span>
-      <h2>Type Hint는 보조 문법이 아니라 명세 계약의 실행 도구</h2>
+      <span class="kicker">Appendix A · Type Contracts</span>
+      <h2>부록: Type Hint를 계약 문서로 사용하는 실무 규칙</h2>
       <p>타입 힌트는 ADT 명세를 함수 경계에 고정하는 장치입니다. 구현 이후에 붙이는 주석이 아니라, 입력/출력 계약을 명시해 반례 공간을 줄이는 역할을 합니다.</p>
       <div class="formula">
 $$
