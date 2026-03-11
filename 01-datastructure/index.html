@@ -48,8 +48,8 @@
     }
 
     .deck {
-      width: min(1420px, 100%);
-      max-width: 1420px;
+      width: min(1700px, 100%);
+      max-width: 1700px;
       margin: 34px auto 132px;
       padding: 0 clamp(12px, 2.2vw, 24px);
       display: grid;
@@ -559,7 +559,7 @@
       border: 1px solid #cfd5df;
       border-radius: 8px;
       box-shadow: 0 6px 16px rgba(32, 41, 56, 0.08);
-      padding: 96px 80px 132px;
+      padding: 96px 52px 132px;
     }
 
     .slide:not(.title-slide)::before {
@@ -625,6 +625,15 @@
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 28px;
+    }
+
+    .cols-2.example-stack {
+      grid-template-columns: 1fr;
+      gap: 16px;
+    }
+
+    .cols-2.example-stack .card {
+      width: 100%;
     }
 
     .cols-3 {
@@ -761,30 +770,47 @@
         display: block;
         width: 100%;
         overflow-x: auto;
-        white-space: nowrap;
+        white-space: normal;
       }
 
       pre {
         font-size: 0.84rem;
         line-height: 1.52;
+        max-width: 100%;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
       }
 
       pre.editable-code {
-        grid-template-columns: 36px minmax(0, 1fr);
-        padding: 10px 10px 10px 0;
+        grid-template-columns: 1fr;
+        padding: 10px;
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+        word-break: break-word;
       }
 
       pre.editable-code code {
-        padding-left: 8px;
+        padding-left: 0;
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+        word-break: break-word;
       }
 
       .line-numbers {
-        width: 36px;
-        padding-right: 6px;
+        display: none;
+      }
+
+      .slide:not(.title-slide) .card {
+        padding: 16px;
+      }
+
+      .inline-runner {
+        padding: 8px;
       }
 
       .inline-output {
         font-size: 0.78rem;
+        overflow-x: auto;
       }
 
       .title-slide {
@@ -2947,6 +2973,16 @@ _buf.getvalue()
       lineEl.textContent = nums.join("\n");
     }
 
+    function normalizeExampleColumnLayout() {
+      const groups = Array.from(document.querySelectorAll(".slide .cols-2"));
+      groups.forEach((group) => {
+        const codeBlocks = group.querySelectorAll(".card pre");
+        if (codeBlocks.length >= 2) {
+          group.classList.add("example-stack");
+        }
+      });
+    }
+
     function initEditableExamples() {
       const blocks = Array.from(document.querySelectorAll(".slide pre > code"));
       blocks.forEach((codeEl) => {
@@ -3051,6 +3087,7 @@ _buf.getvalue()
       }
     });
 
+    normalizeExampleColumnLayout();
     initEditableExamples();
     initSlideNumbers();
   </script>
