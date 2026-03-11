@@ -698,6 +698,12 @@
     }
 
     @media (max-width: 920px) {
+      .deck {
+        width: 100%;
+        max-width: 100%;
+        padding: 0 10px;
+      }
+
       .slide {
         padding: 30px 22px 84px;
         aspect-ratio: auto;
@@ -707,7 +713,7 @@
       }
       .slide:not(.title-slide) {
         background-size: calc(100% - 52px) 4px, calc(100% - 98px) 4px, auto;
-        padding: 82px 32px 108px;
+        padding: 76px 18px 96px;
       }
       .slide:not(.title-slide) h2 {
         font-size: clamp(1.5rem, 5.8vw, 2.2rem);
@@ -741,6 +747,38 @@
         font-size: 0.88rem;
         bottom: 20px;
       }
+
+      pre {
+        max-width: 100%;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+      }
+
+      pre code {
+        white-space: inherit;
+        word-break: break-word;
+        overflow-wrap: anywhere;
+      }
+
+      pre.editable-code {
+        grid-template-columns: 1fr;
+        padding: 10px;
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+        word-break: break-word;
+      }
+
+      pre.editable-code code {
+        padding-left: 0;
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+        word-break: break-word;
+      }
+
+      .line-numbers {
+        display: none;
+      }
+
       .cols-2, .cols-3 { grid-template-columns: 1fr; }
     }
 
@@ -771,6 +809,15 @@
         width: 100%;
         overflow-x: auto;
         white-space: normal;
+      }
+
+      .slide:not(.title-slide) th,
+      .slide:not(.title-slide) td {
+        min-width: 0;
+        padding: 10px 10px;
+        font-size: 0.84rem;
+        overflow-wrap: anywhere;
+        word-break: break-word;
       }
 
       pre {
@@ -1360,6 +1407,30 @@ print(a, b)</code></pre>
     </section>
 
     <section class="slide">
+      <span class="kicker">Part 2.2.1 · Mutate / Return / Fail Contract</span>
+      <h2>List 연산을 읽는 공통 질문 3개</h2>
+      <p>대학원 코드 리뷰에서는 list API를 기능별로 외우기보다, 모든 호출에서 동일한 3개 질문으로 해석합니다: (1) 원본 상태를 바꾸는가, (2) 반환값은 무엇인가, (3) 실패 시 어떤 예외가 발생하는가.</p>
+      <table>
+        <thead><tr><th>연산</th><th>Mutate?</th><th>Return</th><th>Fail mode</th><th>딥러닝 파이프라인 의미</th></tr></thead>
+        <tbody>
+          <tr><td><code>append(x)</code></td><td>Yes</td><td><code>None</code></td><td>거의 없음</td><td>배치/로그 누적 버퍼</td></tr>
+          <tr><td><code>pop()</code></td><td>Yes</td><td>원소</td><td>빈 list면 <code>IndexError</code></td><td>큐/스택 소비 로직</td></tr>
+          <tr><td><code>remove(x)</code></td><td>Yes</td><td><code>None</code></td><td>없으면 <code>ValueError</code></td><td>필터링 파이프라인 오류 표면화</td></tr>
+          <tr><td><code>index(x)</code></td><td>No</td><td><code>int</code></td><td>없으면 <code>ValueError</code></td><td>레이블 위치 검색</td></tr>
+          <tr><td><code>copy()</code></td><td>No</td><td>new list</td><td>없음</td><td>실험 설정 분기 전 shallow 복제</td></tr>
+          <tr><td><code>sort()</code></td><td>Yes</td><td><code>None</code></td><td>키 비교 불가면 <code>TypeError</code></td><td>랭킹 순서 고정(원본 변경)</td></tr>
+          <tr><td><code>sorted(xs)</code></td><td>No</td><td>new list</td><td>키 비교 불가면 <code>TypeError</code></td><td>원본 보존형 분석 파이프라인</td></tr>
+        </tbody>
+      </table>
+      <pre><code>scores: list[float] = [0.73, 0.91, 0.84]
+alias = scores
+sorted_scores = sorted(scores)  # new list
+scores.sort()                   # in-place mutation
+print(alias is scores, alias, sorted_scores)</code></pre>
+      <p class="muted">핵심: list 버그의 상당수는 값 계산보다 상태 변화(in-place)와 반환값(<code>None</code>)의 혼동에서 발생합니다.</p>
+    </section>
+
+    <section class="slide">
       <span class="kicker">Part 2.3 · Indexing & Slicing</span>
       <h2>Indexing & Slice Semantics: 경계조건, clipping, 상태변화</h2>
       <p>단일 인덱스와 슬라이스는 실패 동작이 다릅니다. 단일 인덱스는 범위를 벗어나면 예외가 나지만, 슬라이스는 범위를 자동 clipping해 빈 리스트를 포함한 결과를 돌려줄 수 있습니다.</p>
@@ -1470,6 +1541,45 @@ $$
     </section>
 
     <section class="slide">
+      <span class="kicker">Part 2.5.1 · Comprehension vs Generator</span>
+      <h2>Eager list와 lazy generator를 언제 선택할 것인가</h2>
+      <p>표현식 선택은 문법 취향이 아니라 materialization 전략입니다. 학습 루프에서는 다회 순회/랜덤 접근 필요 여부가 결정 기준이 됩니다.</p>
+      <div class="cols-2">
+        <div class="card">
+          <h3>List comprehension (eager)</h3>
+          <pre><code>tokens: list[str] = ["a", "bb", "ccc", "dddd"]
+lengths: list[int] = [len(t) for t in tokens]
+print(lengths[0], lengths[-1], len(lengths))</code></pre>
+          <ul>
+            <li>즉시 메모리 할당</li>
+            <li>재사용/인덱싱 가능</li>
+            <li>디버깅 출력이 쉬움</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>Generator expression (lazy)</h3>
+          <pre><code>tokens: list[str] = ["a", "bb", "ccc", "dddd"]
+lengths_gen = (len(t) for t in tokens)
+print(next(lengths_gen), next(lengths_gen))
+print(list(lengths_gen))  # 남은 요소만 소비</code></pre>
+          <ul>
+            <li>메모리 피크 감소</li>
+            <li>1회 소비 semantics 주의</li>
+            <li>스트리밍 파이프라인에 적합</li>
+          </ul>
+        </div>
+      </div>
+      <table>
+        <thead><tr><th>요구사항</th><th>권장</th><th>이유</th></tr></thead>
+        <tbody>
+          <tr><td>반복적으로 재순회</td><td>list comprehension</td><td>소비 후에도 데이터 유지</td></tr>
+          <tr><td>메모리 제약 + 단일 통과</td><td>generator expression</td><td>지연 평가로 피크 메모리 감소</td></tr>
+          <tr><td>중간 상태 로깅/검증</td><td>명시적 for 루프</td><td>디버깅 가시성 향상</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="slide">
       <span class="kicker">Part 2.6 · Sorting and Ordering Contracts</span>
       <h2><code>sort()</code> vs <code>sorted()</code>, stable sort, multi-key ranking</h2>
       <p>정렬은 단순 출력 정리가 아니라 ordering contract를 명시하는 도구입니다. 특히 실험 랭킹/체크포인트 선택에서는 tie-break 규칙을 코드로 고정해야 재현성이 확보됩니다.</p>
@@ -1544,6 +1654,32 @@ memo: dict[tuple[str, int, float], float] = {cache_key: 0.913}</code></pre>
         </tbody>
       </table>
       <p class="muted">주의: <code>(1, [2, 3])</code>처럼 내부에 unhashable 원소가 있으면 tuple도 key로 사용할 수 없습니다. 단일 원소 tuple은 <code>("one",)</code>처럼 쉼표가 필요합니다.</p>
+    </section>
+
+    <section class="slide">
+      <span class="kicker">Part 2.8.1 · Immutable Record Choices</span>
+      <h2>Tuple vs namedtuple vs frozen dataclass</h2>
+      <p>불변 레코드를 표현할 때는 “짧은 키”와 “도메인 모델”을 분리해 선택해야 합니다. 키 캐시/인덱스는 tuple이 유리하고, 의미 필드가 중요한 설정 객체는 frozen dataclass가 유리합니다.</p>
+      <pre><code>from collections import namedtuple
+from dataclasses import dataclass
+
+Key = tuple[str, int, float]
+RunId = namedtuple("RunId", ["model", "seed"])
+
+@dataclass(frozen=True)
+class TrainConfig:
+    model: str
+    batch_size: int
+    lr: float</code></pre>
+      <table>
+        <thead><tr><th>표현</th><th>장점</th><th>약점</th><th>권장 사용</th></tr></thead>
+        <tbody>
+          <tr><td><code>tuple</code></td><td>가볍고 빠름, hash key 적합</td><td>필드 의미가 위치 의존</td><td>캐시 키, shape, 인덱스 키</td></tr>
+          <tr><td><code>namedtuple</code></td><td>필드명 제공 + 불변</td><td>복잡한 검증/메서드 확장 제한</td><td>읽기 중심 레코드</td></tr>
+          <tr><td><code>@dataclass(frozen=True)</code></td><td>명시적 필드, 타입/리팩터링 친화</td><td>상대적으로 무거움</td><td>설정 객체, 실험 메타데이터</td></tr>
+        </tbody>
+      </table>
+      <p class="muted">선택 규칙: 해시 키와 스냅샷은 tuple 계열, 도메인 의미와 유지보수성은 frozen dataclass로 분리합니다.</p>
     </section>
 
     <section class="slide">
@@ -2976,8 +3112,9 @@ _buf.getvalue()
     function normalizeExampleColumnLayout() {
       const groups = Array.from(document.querySelectorAll(".slide .cols-2"));
       groups.forEach((group) => {
-        const codeBlocks = group.querySelectorAll(".card pre");
-        if (codeBlocks.length >= 2) {
+        const codeBlocks = group.querySelectorAll("pre");
+        const runners = group.querySelectorAll(".inline-runner");
+        if (codeBlocks.length >= 2 || (codeBlocks.length >= 1 && runners.length >= 1)) {
           group.classList.add("example-stack");
         }
       });
