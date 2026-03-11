@@ -35,7 +35,7 @@
     html, body {
       width: 100%;
       max-width: 100%;
-      overflow-x: hidden;
+      overflow-x: auto;
     }
 
     body {
@@ -53,6 +53,7 @@
       margin: 34px auto 132px;
       padding: 0 clamp(12px, 2.2vw, 24px);
       display: grid;
+      grid-template-columns: minmax(0, 1fr);
       gap: 30px;
       justify-items: center;
     }
@@ -69,8 +70,20 @@
       height: auto;
       width: 100%;
       max-width: 100%;
+      min-width: 0;
       overflow: visible;
       background-image: none;
+    }
+
+    .slide table,
+    .slide pre,
+    .slide .formula,
+    .slide .infographic,
+    .slide .cols-2,
+    .slide .cols-3,
+    .slide .card {
+      min-width: 0;
+      max-width: 100%;
     }
 
     .slide::before {
@@ -701,10 +714,14 @@
       .deck {
         width: 100%;
         max-width: 100%;
+        grid-template-columns: minmax(0, 1fr);
         padding: 0 10px;
       }
 
       .slide {
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
         padding: 30px 22px 84px;
         aspect-ratio: auto;
         min-height: auto;
@@ -787,6 +804,12 @@
         margin: 12px auto 80px;
         padding: 0 8px;
         gap: 16px;
+      }
+
+      .slide {
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
       }
 
       .slide:not(.title-slide) {
