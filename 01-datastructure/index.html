@@ -1498,6 +1498,118 @@ print(2 in seen)</code></pre>
     </section>
 
     <section class="slide">
+      <span class="kicker">Part 2.8 · Tuple as Immutable Sequence</span>
+      <h2>List vs Tuple: mutability, intent signaling, key suitability</h2>
+      <p>tuple은 list의 축약 문법이 아니라 “변경 불가 계약”을 표현하는 시퀀스입니다. Sequence family 안에서 tuple을 먼저 분리해두면, 뒤의 dict/set 키 설계와 copy 전략이 자연스럽게 연결됩니다.</p>
+      <pre><code>shape: tuple[int, int, int, int] = (32, 3, 224, 224)
+batch_losses: list[float] = []
+for step in range(3):
+    batch_losses.append(step * 0.1)
+
+cache_key: tuple[str, int, float] = ("bert-base", 32, 3e-5)
+memo: dict[tuple[str, int, float], float] = {cache_key: 0.913}</code></pre>
+      <table>
+        <thead><tr><th>항목</th><th><code>list</code></th><th><code>tuple</code></th><th>설계 시사점</th></tr></thead>
+        <tbody>
+          <tr><td>가변성</td><td>mutable</td><td>immutable</td><td>tuple은 상태 오염 방지에 유리</td></tr>
+          <tr><td>해시 가능성</td><td>불가</td><td>원소가 모두 hashable일 때 가능</td><td>dict/set key로 tuple 선호</td></tr>
+          <tr><td>의미 전달</td><td>변경 가능한 버퍼</td><td>고정 레코드/스냅샷</td><td>의도를 타입으로 드러냄</td></tr>
+          <tr><td>메모리</td><td>상대적으로 큼</td><td>상대적으로 컴팩트</td><td>읽기 중심 구조에서 tuple 우세</td></tr>
+        </tbody>
+      </table>
+      <p class="muted">주의: <code>(1, [2, 3])</code>처럼 내부에 unhashable 원소가 있으면 tuple도 key로 사용할 수 없습니다. 단일 원소 tuple은 <code>("one",)</code>처럼 쉼표가 필요합니다.</p>
+    </section>
+
+    <section class="slide">
+      <span class="kicker">Part 2.9 · Deque for Queue Workloads</span>
+      <h2><code>deque</code>: 양끝 연산 중심 ADT 구현</h2>
+      <p>deque는 queue/deque ADT를 구현할 때 list보다 의미와 비용이 모두 명확합니다. 핵심은 “앞삭제/앞삽입이 주연산인가”입니다.</p>
+      <div class="cols-2">
+        <div class="card">
+          <h3>핵심 연산</h3>
+          <pre><code>from collections import deque
+
+q: deque[int] = deque([1, 2, 3])
+q.appendleft(0)
+q.append(4)
+print(q.popleft(), q.pop())   # 0, 4
+
+w: deque[int] = deque(maxlen=3)
+for x in [10, 11, 12, 13]:
+    w.append(x)
+print(list(w))                # [11, 12, 13]</code></pre>
+        </div>
+        <div class="card">
+          <h3>선택 기준</h3>
+          <ul>
+            <li>앞삭제/앞삽입 빈도가 높으면 deque</li>
+            <li>랜덤 인덱싱/중간 접근이 핵심이면 list</li>
+            <li><code>maxlen</code>은 고정 크기 최근성 버퍼에 유용</li>
+          </ul>
+        </div>
+      </div>
+      <table>
+        <thead><tr><th>연산</th><th>list</th><th>deque</th><th>코멘트</th></tr></thead>
+        <tbody>
+          <tr><td>append/pop (right)</td><td>O(1) amortized</td><td>O(1)</td><td>둘 다 양호</td></tr>
+          <tr><td>pop(0)/appendleft</td><td>O(n)</td><td>O(1)</td><td>queue에서는 deque 우세</td></tr>
+          <tr><td>랜덤 접근</td><td>O(1)</td><td>상대적으로 비효율</td><td>배열형 접근은 list 우세</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="slide">
+      <span class="kicker">Part 2.10 · Heap-Based Priority Queue</span>
+      <h2><code>heapq</code>: root-min 보장과 tie-break 설계</h2>
+      <p>heap는 전체 정렬이 아니라 최소 원소 접근을 빠르게 하는 자료구조입니다. 우선순위 갱신/임의 삭제가 빈번하면 lazy deletion 또는 재삽입 전략이 필요합니다.</p>
+      <pre><code>import heapq
+from dataclasses import dataclass, field
+
+@dataclass(order=True)
+class Job:
+    priority: int
+    seq: int
+    name: str = field(compare=False)
+
+h: list[Job] = []
+heapq.heappush(h, Job(1, 0, "eval"))
+heapq.heappush(h, Job(1, 1, "train"))
+heapq.heappush(h, Job(0, 2, "warmup"))
+print(heapq.heappop(h))</code></pre>
+      <table>
+        <thead><tr><th>연산</th><th>복잡도</th><th>실무 포인트</th></tr></thead>
+        <tbody>
+          <tr><td><code>heappush/heappop</code></td><td>O(log n)</td><td>Top 우선순위 유지</td></tr>
+          <tr><td><code>h[0]</code></td><td>O(1)</td><td>최솟값 peek</td></tr>
+          <tr><td>priority update</td><td>직접 지원 약함</td><td>재삽입 + stale 무시 전략</td></tr>
+          <tr><td>arbitrary delete</td><td>비효율적</td><td>빈번하면 다른 구조 검토</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="slide">
+      <span class="kicker">Part 2.11 · Ordered Array with Bisect</span>
+      <h2>Bisect: search는 O(log n), insertion은 O(n)</h2>
+      <p>bisect는 정렬 배열에서 경계를 빠르게 찾는 도구입니다. map 대체재가 아니라 ordered array discipline이며, 삽입 시 시프트 비용 O(n)을 항상 함께 계산해야 합니다.</p>
+      <pre><code>import bisect
+
+arr: list[int] = [10, 20, 20, 40, 50]
+print(bisect.bisect_left(arr, 20))   # 1
+print(bisect.bisect_right(arr, 20))  # 3
+bisect.insort(arr, 35)
+print(arr)</code></pre>
+      <table>
+        <thead><tr><th>기법</th><th>복잡도</th><th>적합 시나리오</th></tr></thead>
+        <tbody>
+          <tr><td><code>bisect_left/right</code></td><td>O(log n)</td><td>정렬 배열의 lower/upper bound</td></tr>
+          <tr><td><code>insort</code></td><td>O(n)</td><td>소규모 온라인 정렬 유지</td></tr>
+          <tr><td>정렬+다중 질의</td><td>O(n log n)+q·O(log n)</td><td>배치 정렬 후 반복 조회</td></tr>
+        </tbody>
+      </table>
+      <p class="muted">삽입이 잦은 대규모 온라인 워크로드에서는 heap/tree 계열이 더 유리할 수 있습니다.</p>
+    </section>
+
+    <section class="slide">
       <span class="kicker">Part 3 · Hash Family (dict/set)</span>
       <h2>딕셔너리 기본: 조회, 추가, 삭제, 안전 조회</h2>
       <pre><code>d: dict[str, str] = {"sample_id": "seq_001", "label": "positive"}
@@ -1641,7 +1753,98 @@ $$
     </section>
 
     <section class="slide">
-      <span class="kicker">Part 3.3 · Set Semantics and Reproducibility</span>
+      <span class="kicker">Part 3.3 · Lookup Policies & Failure Modes</span>
+      <h2>딕셔너리 실패 모드: 조회 정책과 안전성</h2>
+      <p>딕셔너리는 키 기반 접근이 핵심이므로, 실전에서는 “키가 없을 때의 정책”을 먼저 설계해야 합니다. 예외를 발생시킬지, 기본값을 줄지, 자동 생성할지를 합의하지 않으면 버그가 잠복합니다.</p>
+      <div class="cols-2">
+        <div class="card">
+          <h3>조회 정책</h3>
+          <pre><code>d: dict[str, str] = {"sample_id": "seq_001", "label": "positive"}
+print(d["sample_id"])              # 강한 가정(없으면 오류)
+print(d.get("email"))         # None
+print(d.get("email", "N/A"))  # 기본값</code></pre>
+        </div>
+        <div class="card">
+          <h3>수정 정책</h3>
+          <pre><code>d: dict[str, str] = {"sample_id": "seq_001", "label": "positive"}
+d["split"] = "train"
+v: str = d.pop("label", "정보없음")
+d.setdefault("country", "KR")
+print(d, v)</code></pre>
+        </div>
+      </div>
+      <table>
+        <thead><tr><th>연산</th><th>시간복잡도(평균)</th><th>실전 코멘트</th></tr></thead>
+        <tbody>
+          <tr><td><code>d[k]</code> 조회</td><td>O(1)</td><td>실패를 예외로 다루는 곳에서 사용</td></tr>
+          <tr><td><code>get</code></td><td>O(1)</td><td>유실 데이터가 자연스러운 파이프라인에 적합</td></tr>
+          <tr><td><code>setdefault</code></td><td>O(1)</td><td>그룹화/누적 패턴 간결화</td></tr>
+          <tr><td><code>pop</code></td><td>O(1)</td><td>소비(consumption) 모델에 적합</td></tr>
+        </tbody>
+      </table>
+      <p>설계 규칙: 외부 입력(JSON, 로그, CSV)에서 온 dict는 항상 <code>get</code> + 검증 단계를 거치고, 내부 프로토콜 dict는 <code>d[k]</code>로 즉시 예외를 발생시키는 방식이 디버깅에 유리합니다.</p>
+    </section>
+
+    <section class="slide">
+      <span class="kicker">Part 3.4 · Dict Views and Mutation Interaction</span>
+      <h2>dynamic view semantics: <code>keys/items/values</code>와 변경 상호작용</h2>
+      <p>dict view는 snapshot이 아니라 live view입니다. 순회 중 구조 변경이 섞이면 논리 오류 또는 런타임 오류가 발생할 수 있으므로 materialization 전략을 구분해야 합니다.</p>
+      <pre><code>d: dict[str, int] = {"a": 1, "b": 2, "c": 3}
+view = d.items()              # live view
+d["d"] = 4
+print(list(view))             # 변경 반영
+
+for k in list(d.keys()):      # snapshot 후 안전 삭제
+    if k == "b":
+        del d[k]
+print(d)</code></pre>
+      <table>
+        <thead><tr><th>표현</th><th>의미</th><th>적합한 사용</th></tr></thead>
+        <tbody>
+          <tr><td><code>d.items()</code></td><td>live view</td><td>읽기 중심 동적 관측</td></tr>
+          <tr><td><code>list(d.items())</code></td><td>snapshot copy</td><td>순회 중 구조 변경 필요 시</td></tr>
+          <tr><td><code>for k in d:</code></td><td>키 순회</td><td>변경 없는 조회 루프</td></tr>
+          <tr><td><code>for k in list(d):</code></td><td>복사 후 순회</td><td>삭제/삽입 동반 루프</td></tr>
+        </tbody>
+      </table>
+      <p class="muted">dict는 insertion order를 보존하지만, view는 동적이며 set처럼 order-insensitive한 동치 개념과는 구분해서 이해해야 합니다.</p>
+    </section>
+
+    <section class="slide">
+      <span class="kicker">Part 3.5 · Hash Map Design Patterns</span>
+      <h2>해시 기반 매핑 패턴: 집계, 병합, 계층 구성</h2>
+      <p>이 슬라이드는 “연산은 같아도 의도가 다른 패턴”을 구분하는 데 목적이 있습니다. <code>comprehension</code>은 결정 규칙을 데이터 구조로 압축할 때, <code>defaultdict/Counter</code>는 누적·집계 로직의 조건 분기를 제거할 때, 병합 연산은 구성 계층(기본값/실험값/런타임값)을 합성할 때 가장 효과적입니다.</p>
+      <div class="cols-2">
+        <div class="card">
+          <h3>dict comprehension</h3>
+          <pre><code>scores: dict[str, float] = {"exp_a": 0.91, "exp_b": 0.88, "exp_c": 0.74}
+level: dict[str, str] = {k: ("A" if v >= 0.90 else "B" if v >= 0.80 else "C")
+         for k, v in scores.items()}
+print(level)</code></pre>
+        </div>
+        <div class="card">
+          <h3>그룹화/카운트</h3>
+          <pre><code>from collections import defaultdict, Counter
+text = "graduate level data structure"
+freq: Counter[str] = Counter(text.split())
+
+bucket: defaultdict[str, list[int]] = defaultdict(list)
+for k, v in [("A", 1), ("A", 2), ("B", 3)]:
+    bucket[k].append(v)
+
+print(freq.most_common(5))
+print(dict(bucket))</code></pre>
+        </div>
+      </div>
+      <pre><code># merge 연산 (Python 3.9+)
+a: dict[str, int] = {"x": 1, "y": 2}
+b: dict[str, int] = {"y": 99, "z": 3}
+print(a | b)  # {'x':1, 'y':99, 'z':3}</code></pre>
+      <p class="muted">패턴 선택 기준: 1) 선언형 규칙이면 comprehension, 2) 누적/집계면 defaultdict·Counter, 3) 환경 계층 합성이면 merge(<code>|</code>)를 우선 사용합니다.</p>
+    </section>
+
+    <section class="slide">
+      <span class="kicker">Part 3.6 · Set Semantics and Reproducibility</span>
       <h2>Set = membership-centric ADT, but order is not a contract</h2>
       <p>set은 중복 제거/멤버십 검사에 최적화된 hash family 구조입니다. 반면 순서는 논리 계약이 아니므로 재현성 경로에서는 직접 출력 순서로 쓰면 위험합니다. set을 “키만 있는 dict”로 보면 설계가 명확해집니다.</p>
       <pre><code>A: set[int] = {1, 2, 3, 4}
@@ -1680,284 +1883,7 @@ $$
     </section>
 
     <section class="slide">
-      <span class="kicker">Part 3.4 · Lookup Policies & Failure Modes</span>
-      <h2>딕셔너리 실패 모드: 조회 정책과 안전성</h2>
-      <p>딕셔너리는 키 기반 접근이 핵심이므로, 실전에서는 “키가 없을 때의 정책”을 먼저 설계해야 합니다. 예외를 발생시킬지, 기본값을 줄지, 자동 생성할지를 합의하지 않으면 버그가 잠복합니다.</p>
-      <div class="cols-2">
-        <div class="card">
-          <h3>조회 정책</h3>
-          <pre><code>d: dict[str, str] = {"sample_id": "seq_001", "label": "positive"}
-print(d["sample_id"])              # 강한 가정(없으면 오류)
-print(d.get("email"))         # None
-print(d.get("email", "N/A"))  # 기본값</code></pre>
-        </div>
-        <div class="card">
-          <h3>수정 정책</h3>
-          <pre><code>d: dict[str, str] = {"sample_id": "seq_001", "label": "positive"}
-d["split"] = "train"
-v: str = d.pop("label", "정보없음")
-d.setdefault("country", "KR")
-print(d, v)</code></pre>
-        </div>
-      </div>
-      <table>
-        <thead><tr><th>연산</th><th>시간복잡도(평균)</th><th>실전 코멘트</th></tr></thead>
-        <tbody>
-          <tr><td><code>d[k]</code> 조회</td><td>O(1)</td><td>실패를 예외로 다루는 곳에서 사용</td></tr>
-          <tr><td><code>get</code></td><td>O(1)</td><td>유실 데이터가 자연스러운 파이프라인에 적합</td></tr>
-          <tr><td><code>setdefault</code></td><td>O(1)</td><td>그룹화/누적 패턴 간결화</td></tr>
-          <tr><td><code>pop</code></td><td>O(1)</td><td>소비(consumption) 모델에 적합</td></tr>
-        </tbody>
-      </table>
-      <p>설계 규칙: 외부 입력(JSON, 로그, CSV)에서 온 dict는 항상 <code>get</code> + 검증 단계를 거치고, 내부 프로토콜 dict는 <code>d[k]</code>로 즉시 예외를 발생시키는 방식이 디버깅에 유리합니다.</p>
-    </section>
-
-    <section class="slide">
-      <span class="kicker">Part 3.5 · Dict Views and Mutation Interaction</span>
-      <h2>dynamic view semantics: <code>keys/items/values</code>와 변경 상호작용</h2>
-      <p>dict view는 snapshot이 아니라 live view입니다. 순회 중 구조 변경이 섞이면 논리 오류 또는 런타임 오류가 발생할 수 있으므로 materialization 전략을 구분해야 합니다.</p>
-      <pre><code>d: dict[str, int] = {"a": 1, "b": 2, "c": 3}
-view = d.items()              # live view
-d["d"] = 4
-print(list(view))             # 변경 반영
-
-for k in list(d.keys()):      # snapshot 후 안전 삭제
-    if k == "b":
-        del d[k]
-print(d)</code></pre>
-      <table>
-        <thead><tr><th>표현</th><th>의미</th><th>적합한 사용</th></tr></thead>
-        <tbody>
-          <tr><td><code>d.items()</code></td><td>live view</td><td>읽기 중심 동적 관측</td></tr>
-          <tr><td><code>list(d.items())</code></td><td>snapshot copy</td><td>순회 중 구조 변경 필요 시</td></tr>
-          <tr><td><code>for k in d:</code></td><td>키 순회</td><td>변경 없는 조회 루프</td></tr>
-          <tr><td><code>for k in list(d):</code></td><td>복사 후 순회</td><td>삭제/삽입 동반 루프</td></tr>
-        </tbody>
-      </table>
-      <p class="muted">dict는 insertion order를 보존하지만, view는 동적이며 set처럼 order-insensitive한 동치 개념과는 구분해서 이해해야 합니다.</p>
-    </section>
-
-    <section class="slide">
-      <span class="kicker">Part 3.6 · Hash Map Design Patterns</span>
-      <h2>해시 기반 매핑 패턴: 집계, 병합, 계층 구성</h2>
-      <p>이 슬라이드는 “연산은 같아도 의도가 다른 패턴”을 구분하는 데 목적이 있습니다. <code>comprehension</code>은 결정 규칙을 데이터 구조로 압축할 때, <code>defaultdict/Counter</code>는 누적·집계 로직의 조건 분기를 제거할 때, 병합 연산은 구성 계층(기본값/실험값/런타임값)을 합성할 때 가장 효과적입니다.</p>
-      <div class="cols-2">
-        <div class="card">
-          <h3>dict comprehension</h3>
-          <pre><code>scores: dict[str, float] = {"exp_a": 0.91, "exp_b": 0.88, "exp_c": 0.74}
-level: dict[str, str] = {k: ("A" if v >= 0.90 else "B" if v >= 0.80 else "C")
-         for k, v in scores.items()}
-print(level)</code></pre>
-        </div>
-        <div class="card">
-          <h3>그룹화/카운트</h3>
-          <pre><code>from collections import defaultdict, Counter
-text = "graduate level data structure"
-freq: Counter[str] = Counter(text.split())
-
-bucket: defaultdict[str, list[int]] = defaultdict(list)
-for k, v in [("A", 1), ("A", 2), ("B", 3)]:
-    bucket[k].append(v)
-
-print(freq.most_common(5))
-print(dict(bucket))</code></pre>
-        </div>
-      </div>
-      <pre><code># merge 연산 (Python 3.9+)
-a: dict[str, int] = {"x": 1, "y": 2}
-b: dict[str, int] = {"y": 99, "z": 3}
-print(a | b)  # {'x':1, 'y':99, 'z':3}</code></pre>
-      <p class="muted">패턴 선택 기준: 1) 선언형 규칙이면 comprehension, 2) 누적/집계면 defaultdict·Counter, 3) 환경 계층 합성이면 merge(<code>|</code>)를 우선 사용합니다.</p>
-    </section>
-
-    <section class="slide">
-      <span class="kicker">Part 3.7 · Immutable Record Design</span>
-      <h2>Tuple 상세: 불변 시퀀스와 구조적 데이터 표현</h2>
-      <p>tuple은 “값 객체(value object)” 모델에 적합합니다. 실험 파라미터, 다중 키, 좌표값처럼 변경되면 안 되는 구조를 표현할 때 의미적으로도 명확합니다.</p>
-      <p>특히 튜플은 “상태가 변하면 다른 객체가 되어야 하는” 문제에서 유용합니다. 예를 들어 캐시 키, 그래프 좌표, 파이프라인 스냅샷과 같이 동일성(identity)보다 값(value) 의미가 중요한 경우, 튜플을 사용하면 의도치 않은 변경을 구조적으로 차단할 수 있습니다.</p>
-      <div class="cols-2">
-        <div class="card">
-          <h3>패킹/언패킹</h3>
-          <pre><code>t: tuple[str, float, int] = ("loss", 0.023, 12)
-name: str
-value: float
-step: int
-name, value, step = t
-print(name, value, step)</code></pre>
-        </div>
-        <div class="card">
-          <h3>딕셔너리 키로 사용</h3>
-          <pre><code>cache: dict[tuple[str, int, float], dict[str, float]] = {}
-key: tuple[str, int, float] = ("encoder_v2", 32, 3e-5)
-cache[key] = {"f1": 0.91}
-print(cache[key])</code></pre>
-        </div>
-      </div>
-      <p>주의: tuple이 불변이어도 내부 원소가 가변 객체라면 전체 해시 가능성이 깨질 수 있습니다. 예를 들어 <code>(1, [2,3])</code>는 해시 불가능합니다.</p>
-      <div class="formula">
-$$
-h(t)=\operatorname{combine}(h(t_0),h(t_1),\ldots,h(t_k)),
-\quad t_i\ \text{must be hashable}
-$$
-      </div>
-      <div class="formula">
-$$
-t=(x_1,\dots,x_k),\ t'=(x_1,\dots,x_k)\Rightarrow t=t'
-$$
-\(\Rightarrow\) 값 동등성(value equality)이 키 안정성을 제공
-      </div>
-      <table>
-        <thead><tr><th>표현</th><th>장점</th><th>한계</th><th>권장 사용</th></tr></thead>
-        <tbody>
-          <tr><td><code>tuple</code></td><td>가볍고 hash key로 안정적</td><td>필드 의미가 암묵적</td><td>짧은 키/좌표/스냅샷</td></tr>
-          <tr><td><code>namedtuple</code></td><td>필드명 접근 + tuple 호환</td><td>확장/검증 로직 제한</td><td>읽기 중심 레코드</td></tr>
-          <tr><td><code>@dataclass(frozen=True)</code></td><td>명시적 필드 + 타입 + 불변성</td><td>tuple 대비 오버헤드</td><td>도메인 모델/공개 계약</td></tr>
-          <tr><td><code>@dataclass</code>(mutable)</td><td>갱신 편의성</td><td>hash key로 부적합 가능</td><td>내부 상태 객체</td></tr>
-        </tbody>
-      </table>
-      <p class="muted">단일 원소 tuple은 반드시 쉼표가 필요합니다: <code>("single",)</code>.</p>
-    </section>
-
-    <section class="slide">
-      <span class="kicker">Part 3.8 · Specialized Containers</span>
-      <h2><code>collections</code> 모듈로 ADT 구현 정밀화</h2>
-      <p>기본 <code>list/dict</code>만으로도 대부분 구현 가능하지만, 연산의 의미가 명확한 경우에는 전용 컨테이너를 쓰는 편이 정확성과 성능을 동시에 개선합니다. 즉 “동작 가능한 구현”보다 “의도를 드러내는 구현”이 유지보수에 유리합니다.</p>
-      <div class="cols-2">
-        <div class="card">
-          <h3>Queue ADT: deque</h3>
-          <pre><code>from collections import deque, Counter
-
-q: deque[int] = deque([1, 2, 3])
-q.appendleft(0)
-print(q.popleft())   # 0
-q.append(4)
-q2: deque[int] = deque(maxlen=3)
-for x in [10, 11, 12, 13]:
-    q2.append(x)
-print(list(q2))      # [11, 12, 13]
-
-freq: Counter[str] = Counter("token stream token id token")
-print(freq.most_common(3))</code></pre>
-        </div>
-        <div class="card">
-          <h3>defaultdict, ChainMap, namedtuple</h3>
-          <pre><code>from collections import defaultdict, ChainMap, namedtuple
-
-g: defaultdict[str, list[int]] = defaultdict(list)
-for k, v in [("A", 1), ("A", 2), ("B", 3)]:
-    g[k].append(v)
-
-cfg: ChainMap[str, float | int] = ChainMap({"lr": 1e-3}, {"lr": 1e-4, "batch": 64})
-print(cfg["lr"], cfg["batch"])
-
-RunStat = namedtuple("RunStat", ["name", "loss", "step"])
-s = RunStat("exp_a", 0.137, 1200)
-print(s.name, s.loss)</code></pre>
-        </div>
-      </div>
-      <pre><code># DataLoader 전처리에서 class-wise 버킷 구성
-from collections import defaultdict
-
-by_label: defaultdict[int, list[str]] = defaultdict(list)
-samples: list[tuple[str, int]] = [("a.jpg", 0), ("b.jpg", 1), ("c.jpg", 0)]
-for path, y in samples:
-    by_label[y].append(path)
-
-print(dict(by_label))</code></pre>
-      <table>
-        <thead><tr><th>컨테이너</th><th>핵심 연산</th><th>불변식/실패 정책</th><th>왜 기본형보다 유리한가</th></tr></thead>
-        <tbody>
-          <tr><td><code>deque</code></td><td><code>appendleft/popleft</code></td><td>FIFO/LIFO 정책 명시, 빈 구조 처리 규칙 고정</td><td>양끝 연산 O(1) 보장으로 큐 워크로드에 안정적</td></tr>
-          <tr><td><code>Counter</code></td><td><code>most_common</code></td><td>음수/0 카운트 처리 정책 명시</td><td>빈도 분석을 수동 dict 누적보다 간결하게 표현</td></tr>
-          <tr><td><code>defaultdict</code></td><td>지연 초기화</td><td>default factory가 상태를 생성함을 문서화</td><td>키 존재 여부 분기 제거로 그룹화 코드 단순화</td></tr>
-          <tr><td><code>ChainMap</code></td><td>계층 조회</td><td>쓰기 대상(첫 맵) 정책 명확화</td><td>설정 우선순위(실험값 > 기본값)를 명시적으로 관리</td></tr>
-        </tbody>
-      </table>
-      <p class="muted">deque는 양끝 연산에 최적화된 구조입니다. 중간 인덱싱/랜덤 접근이 지배적인 workload라면 list/array 계열로 분리해야 합니다.</p>
-      <svg class="infographic" viewBox="0 0 1080 210" role="img" aria-label="ADT와 collections 모듈 매핑">
-        <rect x="50" y="58" width="180" height="90" rx="12" fill="#e9f2ff" stroke="#9db7dd"/>
-        <text x="140" y="92" text-anchor="middle" font-size="18" font-weight="700" fill="#23426f">Queue ADT</text>
-        <text x="140" y="120" text-anchor="middle" font-size="14" fill="#3e618d">FIFO</text>
-
-        <rect x="300" y="58" width="180" height="90" rx="12" fill="#ebf8ef" stroke="#9dcfb2"/>
-        <text x="390" y="92" text-anchor="middle" font-size="18" font-weight="700" fill="#1f4f34">Multiset ADT</text>
-        <text x="390" y="120" text-anchor="middle" font-size="14" fill="#356a4d">빈도 집계</text>
-
-        <rect x="550" y="58" width="180" height="90" rx="12" fill="#f0edff" stroke="#b4a7e8"/>
-        <text x="640" y="92" text-anchor="middle" font-size="18" font-weight="700" fill="#42316c">Grouped Map</text>
-        <text x="640" y="120" text-anchor="middle" font-size="14" fill="#5a4d87">자동 초기화</text>
-
-        <rect x="800" y="58" width="230" height="90" rx="12" fill="#fff2ea" stroke="#dfb69d"/>
-        <text x="915" y="92" text-anchor="middle" font-size="18" font-weight="700" fill="#7a4125">Layered Config</text>
-        <text x="915" y="120" text-anchor="middle" font-size="14" fill="#8b5b3f">우선순위 조회</text>
-
-        <line x1="140" y1="148" x2="140" y2="178" stroke="#4f6a91" stroke-width="3"/>
-        <text x="140" y="196" text-anchor="middle" font-size="14" fill="#2c466e">deque</text>
-        <line x1="390" y1="148" x2="390" y2="178" stroke="#4f6a91" stroke-width="3"/>
-        <text x="390" y="196" text-anchor="middle" font-size="14" fill="#2c466e">Counter</text>
-        <line x1="640" y1="148" x2="640" y2="178" stroke="#4f6a91" stroke-width="3"/>
-        <text x="640" y="196" text-anchor="middle" font-size="14" fill="#2c466e">defaultdict</text>
-        <line x1="915" y1="148" x2="915" y2="178" stroke="#4f6a91" stroke-width="3"/>
-        <text x="915" y="196" text-anchor="middle" font-size="14" fill="#2c466e">ChainMap</text>
-      </svg>
-      <p class="figure-caption">추상 연산(ADT)을 먼저 정하면 구현 후보가 자동으로 줄어듭니다. collections는 이 매핑을 코드에서 명확히 드러내기 위한 표준 도구입니다.</p>
-      <p class="muted">기본 자료형만으로 구현 가능해도, 표준 라이브러리 ADT를 쓰면 코드 의도가 더 명확해지고 버그를 줄일 수 있습니다.</p>
-    </section>
-
-    <section class="slide">
-      <span class="kicker">Part 3.9 · Heap-Based Priority Queue</span>
-      <h2><code>heapq</code>: root-min 보장과 tie-break 설계</h2>
-      <p>heap는 “완전 정렬”이 아니라 “최솟값 접근”을 빠르게 하는 구조입니다. 우선순위 업데이트/임의 삭제는 직접적이지 않으므로 lazy deletion이나 재삽입 전략을 함께 설계해야 합니다.</p>
-      <pre><code>import heapq
-from dataclasses import dataclass, field
-
-@dataclass(order=True)
-class Job:
-    priority: int
-    seq: int
-    name: str = field(compare=False)
-
-h: list[Job] = []
-heapq.heappush(h, Job(1, 0, "eval"))
-heapq.heappush(h, Job(1, 1, "train"))
-heapq.heappush(h, Job(0, 2, "warmup"))
-print(heapq.heappop(h))</code></pre>
-      <table>
-        <thead><tr><th>연산</th><th>복잡도</th><th>코멘트</th></tr></thead>
-        <tbody>
-          <tr><td><code>heappush/heappop</code></td><td>O(log n)</td><td>top 우선순위 유지</td></tr>
-          <tr><td><code>h[0]</code></td><td>O(1)</td><td>최솟값만 즉시 접근</td></tr>
-          <tr><td>priority update</td><td>직접 지원 약함</td><td>재삽입 + stale 무시 전략 필요</td></tr>
-          <tr><td>arbitrary delete</td><td>비효율적</td><td>빈번하면 다른 구조 검토</td></tr>
-        </tbody>
-      </table>
-    </section>
-
-    <section class="slide">
-      <span class="kicker">Part 3.10 · Ordered Structures (Sort/Bisect)</span>
-      <h2>Bisect 중심의 ordered search 패턴</h2>
-      <p>정렬 자체의 의미론은 Part 2.6에서 다뤘고, 여기서는 “정렬된 리스트를 검색/삽입하는 방법”에 집중합니다. 핵심은 탐색 O(log n), 삽입 O(n)의 비대칭입니다.</p>
-      <pre><code>import bisect
-
-arr: list[int] = [10, 20, 20, 40, 50]
-print(bisect.bisect_left(arr, 20))   # 1
-print(bisect.bisect_right(arr, 20))  # 3
-bisect.insort(arr, 35)
-print(arr)
-print(arr[bisect.bisect_left(arr, 35)])</code></pre>
-      <table>
-        <thead><tr><th>기법</th><th>복잡도</th><th>적용 시나리오</th></tr></thead>
-        <tbody>
-          <tr><td><code>bisect_left/right</code></td><td>O(log n)</td><td>정렬 배열 내 경계 검색</td></tr>
-          <tr><td><code>insort</code></td><td>O(n)</td><td>소규모 온라인 정렬 유지</td></tr>
-          <tr><td>정렬 + bisect 혼합</td><td>정렬 O(n log n) + 탐색 O(log n)</td><td>배치 정렬 후 다중 질의</td></tr>
-        </tbody>
-      </table>
-      <p class="muted">삽입이 잦은 온라인 시나리오에서는 정렬 리스트 + bisect보다 heap/tree 계열 구조가 더 유리할 수 있습니다.</p>
-    </section>
-
-    <section class="slide">
-      <span class="kicker">Part 3.11 · Unified Selection Framework</span>
+      <span class="kicker">Part 4 · Unified Selection Framework</span>
       <h2>자료구조 선택 프레임워크: 연산 + 메모리 + 리스크 + 검증비용</h2>
       <p>selection framework는 특정 자료구조 장의 부록이 아니라, 전체 구조군(list/dict/set/tuple/deque/heapq/bisect)을 본 뒤 적용하는 의사결정 규칙입니다.</p>
       <div class="formula">
@@ -1980,7 +1906,7 @@ $$
     </section>
 
     <section class="slide">
-      <span class="kicker">Part 4 · ADT Mapping</span>
+      <span class="kicker">Part 4.1 · ADT Mapping</span>
       <h2>형식 명세를 구현 매핑으로 닫기</h2>
       <p>Part 1.5의 명세 템플릿(State/Operation/Precondition/Invariant)을 실제 구현 선택으로 연결합니다. 아래 표는 “무엇을 빠르게 하려는가”와 함께 “어떻게 실패를 다룰 것인가”까지 포함합니다.</p>
       <table>
@@ -2014,7 +1940,7 @@ $$
     </section>
 
     <section class="slide">
-      <span class="kicker">Part 4.1 · Implementations</span>
+      <span class="kicker">Part 4.2 · Implementations</span>
       <h2>명세를 파이썬 구현으로 옮기기: 예외 정책과 tie-break 규칙</h2>
       <pre><code>from dataclasses import dataclass, field
 from typing import Generic, TypeVar
@@ -2287,7 +2213,44 @@ print(sorted(labels))       # 직렬화/로그는 정렬 후 고정</code></pre>
     </section>
 
     <section class="slide">
-      <span class="kicker">Part 6.1 · Memory & Copy</span>
+      <span class="kicker">Part 6.1 · Iterator & Data Alignment</span>
+      <h2>Iterator 소비와 <code>zip(strict=True)</code>: 조용한 정렬 불일치 차단</h2>
+      <p>연구 코드에서 재현성을 깨뜨리는 대표적 원인은 “데이터 길이 불일치를 조용히 통과시키는 것”입니다. iterator는 1회 소비되고, 기본 <code>zip</code>은 짧은 쪽에 맞춰 잘라내므로 정합성 체크를 명시적으로 넣어야 합니다.</p>
+      <div class="cols-2">
+        <div class="card">
+          <h3>조용한 실패</h3>
+          <pre><code>features = [1, 2, 3]
+labels = ["A", "B"]       # 길이 불일치
+print(list(zip(features, labels)))
+# [(1, 'A'), (2, 'B')]  # 마지막 feature 유실</code></pre>
+        </div>
+        <div class="card">
+          <h3>엄격한 검증</h3>
+          <pre><code>features = [1, 2, 3]
+labels = ["A", "B"]
+
+try:
+    pairs = list(zip(features, labels, strict=True))
+except ValueError as e:
+    print("alignment error:", e)</code></pre>
+        </div>
+      </div>
+      <pre><code># iterator 1회 소비 주의
+it = iter([10, 20, 30])
+print(list(it))   # [10, 20, 30]
+print(list(it))   # []</code></pre>
+      <table>
+        <thead><tr><th>위험 패턴</th><th>증상</th><th>검증/대응</th></tr></thead>
+        <tbody>
+          <tr><td>기본 <code>zip</code> 길이 절단</td><td>라벨-피처 불일치가 잠복</td><td><code>zip(..., strict=True)</code> 사용</td></tr>
+          <tr><td>iterator 재사용</td><td>2회차에 빈 데이터</td><td>필요 시 <code>list(...)</code>로 명시적 materialize</td></tr>
+          <tr><td>generator 디버깅 출력</td><td>디버깅 후 본 연산에서 데이터 소실</td><td>디버깅 전후 소비 경로 분리</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="slide">
+      <span class="kicker">Part 6.2 · Memory & Copy</span>
       <h2>메모리 모델, 얕은/깊은 복사, 참조 투명성</h2>
       <div class="formula">
 $$
@@ -2390,7 +2353,7 @@ $$
     </section>
 
     <section class="slide">
-      <span class="kicker">Part 6.2 · Memory Management</span>
+      <span class="kicker">Part 6.3 · Memory Management</span>
       <h2>파이썬 메모리 관리: 참조 카운트 + 사이클 GC</h2>
       <p>파이썬(CPython)은 기본적으로 참조 카운팅(reference counting)으로 객체 생명주기를 관리하고, 순환 참조는 세대별 가비지 컬렉터가 처리합니다.</p>
       <p>이중 구조를 이해하면 메모리 누수 분석이 쉬워집니다. 단순 객체는 참조 카운트가 0이 되는 즉시 해제되지만, 순환 참조 구조는 카운트만으로 해제되지 않습니다. 따라서 장기 실행 프로세스에서는 cycle을 만들기 쉬운 객체 그래프를 점검하고, 필요 시 약한 참조 또는 명시적 해제 전략을 고려해야 합니다.</p>
@@ -2424,7 +2387,7 @@ print(loss_history)</code></pre>
     </section>
 
     <section class="slide">
-      <span class="kicker">Part 6.3 · Logical Correctness</span>
+      <span class="kicker">Part 6.4 · Logical Correctness</span>
       <h2>논리적 정확성: 불변식(invariant)과 경계조건</h2>
       <p>코드 리뷰에서는 “돌아간다”보다 “왜 항상 맞는가”를 증명 가능한 형태로 설명해야 합니다. 이를 위해 불변식을 명시하고 각 연산이 불변식을 보존하는지 점검합니다.</p>
       <div class="cols-2">
@@ -2466,7 +2429,7 @@ print(pop_safe(s), pop_safe(s), pop_safe(s))</code></pre>
     </section>
 
     <section class="slide">
-      <span class="kicker">Part 6.4 · Concurrency & Immutability</span>
+      <span class="kicker">Part 6.5 · Concurrency & Immutability</span>
       <h2>동시성과 불변 데이터: 안전한 공유 상태 설계</h2>
       <p>병렬/비동기 환경에서는 자료구조 선택이 곧 동시성 안전성입니다. 공유 상태를 줄이고 불변 구조를 우선하면 race condition 가능성이 크게 감소합니다. 데이터 로더 워커, 비동기 전처리 태스크, 추론 요청 큐를 동시에 운영할수록 이 원칙의 효과가 커집니다.</p>
       <div class="cols-2">
@@ -2530,7 +2493,7 @@ print(global_count)</code></pre>
     </section>
 
     <section class="slide">
-      <span class="kicker">Part 6.5 · Testing Strategy</span>
+      <span class="kicker">Part 6.6 · Testing Strategy</span>
       <h2>자료구조 테스트 전략: 예제 기반 + 속성 기반</h2>
       <p>자료구조 구현에서는 입력 몇 개로 끝나는 예제 테스트만으로는 불충분합니다. 랜덤/속성(property) 기반 테스트를 통해 불변식 위반 사례를 체계적으로 찾는 접근이 필요합니다. 특히 시드 고정 여부, 입력 순서 섞기, 배치 경계값(0/1/최대 길이) 검증을 함께 두어야 재현 가능한 결함 분석이 가능합니다.</p>
       <pre><code># 예제 기반 테스트(핵심 시나리오)
