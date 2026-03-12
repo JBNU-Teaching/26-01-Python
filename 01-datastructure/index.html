@@ -58,6 +58,47 @@
       justify-items: center;
     }
 
+    .present-controls {
+      position: fixed;
+      right: 14px;
+      bottom: 14px;
+      z-index: 1200;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(17, 24, 39, 0.82);
+      color: #eef2ff;
+      border: 1px solid rgba(196, 206, 224, 0.28);
+      border-radius: 999px;
+      padding: 8px 12px;
+      box-shadow: 0 6px 20px rgba(15, 23, 42, 0.35);
+      backdrop-filter: blur(4px);
+    }
+
+    .present-toggle {
+      appearance: none;
+      border: 1px solid rgba(255, 255, 255, 0.38);
+      background: rgba(255, 255, 255, 0.12);
+      color: #f8fafc;
+      border-radius: 999px;
+      padding: 5px 11px;
+      font-family: var(--sans);
+      font-size: 0.84rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .present-toggle:hover {
+      background: rgba(255, 255, 255, 0.2);
+    }
+
+    .present-status {
+      font-family: var(--mono);
+      font-size: 0.78rem;
+      opacity: 0.92;
+      white-space: nowrap;
+    }
+
     .slide {
       position: relative;
       background: var(--paper);
@@ -73,6 +114,44 @@
       min-width: 0;
       overflow: visible;
       background-image: none;
+    }
+
+    body.presentation-mode {
+      overflow: hidden;
+      background: #0f172a;
+    }
+
+    body.presentation-mode .deck {
+      width: 100vw;
+      max-width: none;
+      height: 100vh;
+      margin: 0;
+      padding: 0;
+      display: block;
+    }
+
+    body.presentation-mode .slide {
+      display: none;
+      width: 100vw;
+      max-width: none;
+      min-height: 100vh;
+      height: 100vh;
+      border: 0;
+      border-radius: 0;
+      box-shadow: none;
+      padding: clamp(16px, 2.4vw, 28px) clamp(14px, 3vw, 34px) clamp(44px, 5vh, 66px);
+      overflow: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    body.presentation-mode .slide.active-slide {
+      display: block;
+    }
+
+    body.presentation-mode .slide::before,
+    body.presentation-mode .slide::after {
+      left: 12px;
+      right: 12px;
     }
 
     .slide table,
@@ -3097,6 +3176,11 @@ print(decision)</code></pre>
 
   </main>
 
+  <div class="present-controls" aria-label="발표 모드 제어">
+    <button id="presentToggle" class="present-toggle" type="button">발표 모드: OFF</button>
+    <span id="presentStatus" class="present-status">P 토글 · ←/→ 이동</span>
+  </div>
+
   <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/highlight.min.js"></script>
@@ -3432,6 +3516,7 @@ _buf.getvalue()
     function initSlideNumbers() {
       const slides = Array.from(document.querySelectorAll(".slide"));
       slides.forEach((slide, index) => {
+        if (!slide.id) slide.id = `slide-${index + 1}`;
         if (slide.querySelector(".slide-number")) return;
 
         if (!slide.classList.contains("title-slide") && !slide.querySelector(".slide-footer-note")) {
@@ -3446,6 +3531,135 @@ _buf.getvalue()
         num.textContent = `${index + 1}`;
         slide.appendChild(num);
       });
+    }
+
+    function initPresentationMode() {
+      const slides = Array.from(document.querySelectorAll(".slide"));
+      const toggleBtn = document.getElementById("presentToggle");
+      const statusEl = document.getElementById("presentStatus");
+      if (!slides.length || !toggleBtn || !statusEl) return;
+
+      let enabled = false;
+      let currentIndex = 0;
+
+      const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+
+      function parseHashIndex() {
+        const m = (window.location.hash || "").match(/^#slide-(\d+)$/);
+        if (!m) return null;
+        const idx = Number(m[1]) - 1;
+        if (Number.isNaN(idx)) return null;
+        return clamp(idx, 0, slides.length - 1);
+      }
+
+      function findCurrentIndexFromViewport() {
+        let best = 0;
+        let bestDist = Number.POSITIVE_INFINITY;
+        slides.forEach((slide, idx) => {
+          const rect = slide.getBoundingClientRect();
+          const dist = Math.abs(rect.top);
+          if (dist < bestDist) {
+            bestDist = dist;
+            best = idx;
+          }
+        });
+        return best;
+      }
+
+      function updateHash(index) {
+        const nextHash = `#slide-${index + 1}`;
+        if (window.location.hash !== nextHash) {
+          history.replaceState(null, "", nextHash);
+        }
+      }
+
+      function render() {
+        slides.forEach((slide, idx) => {
+          slide.classList.toggle("active-slide", enabled && idx === currentIndex);
+        });
+        document.body.classList.toggle("presentation-mode", enabled);
+        toggleBtn.textContent = `발표 모드: ${enabled ? "ON" : "OFF"}`;
+        statusEl.textContent = enabled
+          ? `${currentIndex + 1} / ${slides.length} · ←/→ 이동 · Esc 종료`
+          : "P 토글 · ←/→ 이동";
+        if (enabled) updateHash(currentIndex);
+      }
+
+      function goTo(index, scrollWhenNormal = true) {
+        currentIndex = clamp(index, 0, slides.length - 1);
+        render();
+        if (!enabled && scrollWhenNormal) {
+          slides[currentIndex].scrollIntoView({ behavior: "smooth", block: "start" });
+          updateHash(currentIndex);
+        }
+      }
+
+      function setMode(nextEnabled) {
+        enabled = nextEnabled;
+        if (enabled) {
+          const hashIdx = parseHashIndex();
+          currentIndex = hashIdx ?? findCurrentIndexFromViewport();
+          window.scrollTo({ top: 0, behavior: "auto" });
+        }
+        render();
+        if (!enabled) {
+          slides[currentIndex].classList.remove("active-slide");
+          slides[currentIndex].scrollIntoView({ behavior: "smooth", block: "start" });
+          updateHash(currentIndex);
+        }
+      }
+
+      function isTypingContext(target) {
+        if (!target) return false;
+        return Boolean(
+          target.closest("input, textarea, select, button, [contenteditable], .mini-run-btn")
+        );
+      }
+
+      toggleBtn.addEventListener("click", () => {
+        setMode(!enabled);
+      });
+
+      window.addEventListener("hashchange", () => {
+        const idx = parseHashIndex();
+        if (idx === null) return;
+        goTo(idx, !enabled);
+      });
+
+      window.addEventListener("keydown", (e) => {
+        if (isTypingContext(e.target)) return;
+        if ((e.key === "p" || e.key === "P") && !e.metaKey && !e.ctrlKey && !e.altKey) {
+          e.preventDefault();
+          setMode(!enabled);
+          return;
+        }
+        if (!enabled) return;
+        if (e.key === "ArrowRight" || e.key === "PageDown" || e.key === " ") {
+          e.preventDefault();
+          goTo(currentIndex + 1, false);
+        } else if (e.key === "ArrowLeft" || e.key === "PageUp") {
+          e.preventDefault();
+          goTo(currentIndex - 1, false);
+        } else if (e.key === "Home") {
+          e.preventDefault();
+          goTo(0, false);
+        } else if (e.key === "End") {
+          e.preventDefault();
+          goTo(slides.length - 1, false);
+        } else if (e.key === "Escape") {
+          e.preventDefault();
+          setMode(false);
+        }
+      });
+
+      const initialHashIndex = parseHashIndex();
+      if (initialHashIndex !== null) currentIndex = initialHashIndex;
+      const params = new URLSearchParams(window.location.search);
+      if (params.get("present") === "1") {
+        setMode(true);
+      } else {
+        render();
+      }
     }
 
     async function runInlineCode(codeText, inlineOutputEl, inlineStatusEl) {
@@ -3619,6 +3833,7 @@ _buf.getvalue()
     normalizeExampleColumnLayout();
     initEditableExamples();
     initSlideNumbers();
+    initPresentationMode();
   </script>
 </body>
 </html>
