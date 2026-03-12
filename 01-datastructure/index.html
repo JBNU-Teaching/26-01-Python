@@ -66,19 +66,19 @@
       display: flex;
       align-items: center;
       gap: 8px;
-      background: rgba(17, 24, 39, 0.82);
+      background: rgba(17, 24, 39, 0.24);
       color: #eef2ff;
-      border: 1px solid rgba(196, 206, 224, 0.28);
+      border: 1px solid rgba(196, 206, 224, 0.15);
       border-radius: 999px;
       padding: 8px 12px;
-      box-shadow: 0 6px 20px rgba(15, 23, 42, 0.35);
+      box-shadow: 0 2px 8px rgba(15, 23, 42, 0.14);
       backdrop-filter: blur(4px);
     }
 
     .present-toggle {
       appearance: none;
-      border: 1px solid rgba(255, 255, 255, 0.38);
-      background: rgba(255, 255, 255, 0.12);
+      border: 1px solid rgba(255, 255, 255, 0.26);
+      background: rgba(255, 255, 255, 0.08);
       color: #f8fafc;
       border-radius: 999px;
       padding: 5px 11px;
@@ -89,13 +89,13 @@
     }
 
     .present-toggle:hover {
-      background: rgba(255, 255, 255, 0.2);
+      background: rgba(255, 255, 255, 0.15);
     }
 
     .present-status {
       font-family: var(--mono);
       font-size: 0.78rem;
-      opacity: 0.92;
+      opacity: 0.72;
       white-space: nowrap;
     }
 
@@ -765,10 +765,8 @@
     }
 
     .slide-footer-note {
-      position: absolute;
-      left: 0;
-      right: 0;
-      bottom: 24px;
+      position: static;
+      margin: 22px 0 0;
       text-align: center;
       font-size: 1.02rem;
       color: #1f232a;
@@ -841,7 +839,7 @@
       }
       .slide-footer-note {
         font-size: 0.88rem;
-        bottom: 20px;
+        margin-top: 18px;
       }
 
       pre {
