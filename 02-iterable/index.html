@@ -1,0 +1,2588 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Python Iterator, Generator, List, Class - 완전 개정 심화 강의</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/styles/github-dark.min.css">
+  <style>
+    :root {
+      --bg: #e9eef3;
+      --paper: #ffffff;
+      --ink: #112033;
+      --ink-soft: #364a60;
+      --line: #d2dce7;
+      --brand: #0a5e90;
+      --brand-2: #176f60;
+      --brand-soft: #eef6fb;
+      --accent: #8b460d;
+      --accent-soft: #fff3e8;
+      --ok: #0c7a45;
+      --warn: #a54310;
+      --code-bg: #0f172a;
+      --code-fg: #e5edf8;
+      --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      --sans: "Pretendard", "Noto Sans KR", "Apple SD Gothic Neo", sans-serif;
+      --shadow: 0 14px 34px rgba(20, 31, 50, 0.09);
+    }
+
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body {
+      font-family: var(--sans);
+      background:
+        radial-gradient(circle at top, rgba(10, 94, 144, 0.06), transparent 28%),
+        linear-gradient(180deg, #e7edf3 0%, #f2f5f8 100%);
+      color: var(--ink);
+      font-size: 19px;
+      line-height: 1.78;
+    }
+
+    a {
+      color: var(--brand);
+      text-decoration: none;
+      border-bottom: 1px solid rgba(0, 91, 143, 0.25);
+    }
+
+    .deck {
+      width: min(1620px, 100%);
+      margin: 32px auto 120px;
+      padding: 0 22px;
+      display: grid;
+      gap: 32px;
+      justify-items: center;
+    }
+
+    .slide {
+      position: relative;
+      width: 100%;
+      background: var(--paper);
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow);
+      padding: 52px 68px 82px;
+      overflow: hidden;
+    }
+
+    .slide::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 7px;
+      background: linear-gradient(90deg, var(--brand) 0%, var(--brand-2) 56%, #6aa158 100%);
+    }
+
+    .slide-number {
+      position: absolute;
+      right: 18px;
+      bottom: 14px;
+      font-family: var(--mono);
+      font-size: 0.92rem;
+      color: #355274;
+      padding: 4px 9px;
+      border-radius: 999px;
+      background: rgba(240, 248, 255, 0.92);
+      border: 1px solid #c6d8eb;
+    }
+
+    .slide-footer-note {
+      margin-top: 22px;
+      font-size: 0.94rem;
+      color: #6a7b90;
+    }
+
+    .present-controls {
+      position: fixed;
+      right: 14px;
+      bottom: 14px;
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: rgba(15, 23, 42, 0.82);
+      color: #f8fafc;
+      box-shadow: 0 8px 18px rgba(15, 23, 42, 0.18);
+      backdrop-filter: blur(6px);
+    }
+
+    .present-toggle {
+      border: 1px solid rgba(255, 255, 255, 0.24);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.09);
+      color: #f8fafc;
+      padding: 5px 11px;
+      font-family: var(--sans);
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .present-status {
+      font-family: var(--mono);
+      font-size: 0.92rem;
+      opacity: 0.82;
+    }
+
+    body.presentation-mode {
+      overflow: hidden;
+      background: #0f172a;
+    }
+
+    body.presentation-mode .deck {
+      width: 100vw;
+      height: 100vh;
+      margin: 0;
+      padding: 0;
+      display: block;
+    }
+
+    body.presentation-mode .slide {
+      display: none;
+      width: 100vw;
+      min-height: 100vh;
+      height: 100vh;
+      border: 0;
+      box-shadow: none;
+      padding: 32px 40px 82px;
+      overflow: auto;
+    }
+
+    body.presentation-mode .slide.active-slide {
+      display: block;
+    }
+
+    h1, h2, h3 { margin: 0 0 12px; line-height: 1.22; text-wrap: balance; }
+    h1 { font-size: clamp(2.9rem, 5.2vw, 4.8rem); letter-spacing: -0.04em; }
+    h2 { font-size: clamp(2rem, 2.9vw, 2.8rem); letter-spacing: -0.03em; overflow-wrap: anywhere; }
+    h3 { font-size: 1.24rem; }
+    p { font-size: 1.28rem; color: var(--ink-soft); }
+    li { font-size: 1.18rem; color: var(--ink-soft); line-height: 1.74; }
+    strong { color: var(--ink); }
+
+    code {
+      font-family: var(--mono);
+      font-size: 0.94em;
+      background: #edf3fa;
+      color: #15436a;
+      padding: 0.08em 0.36em;
+      border-radius: 6px;
+      overflow-wrap: anywhere;
+      word-break: break-word;
+      -webkit-box-decoration-break: clone;
+      box-decoration-break: clone;
+    }
+
+    h1 code,
+    h2 code,
+    h3 code {
+      font-size: 0.82em;
+      line-height: 1.08;
+      padding: 0.04em 0.2em;
+      border-radius: 10px;
+      background: linear-gradient(180deg, #eaf1f8 0%, #e5eef8 100%);
+      color: #16476d;
+    }
+
+    pre {
+      margin: 16px 0 10px;
+      padding: 16px 18px;
+      border-radius: 14px;
+      background: var(--code-bg);
+      color: var(--code-fg);
+      overflow: auto;
+      border: 1px solid #243247;
+      position: relative;
+      font-size: 1rem;
+      line-height: 1.64;
+    }
+
+    pre code {
+      background: transparent;
+      color: inherit;
+      padding: 0;
+      border-radius: 0;
+      display: block;
+      white-space: pre;
+    }
+
+    .title-slide {
+      min-height: 78vh;
+      display: grid;
+      place-items: center;
+      text-align: center;
+      background:
+        radial-gradient(circle at top right, rgba(0, 90, 156, 0.18), transparent 26%),
+        radial-gradient(circle at bottom left, rgba(18, 113, 95, 0.18), transparent 28%),
+        linear-gradient(180deg, #f6f8fb 0%, #eef3f8 100%);
+    }
+
+    .title-tag,
+    .kicker {
+      display: inline-block;
+      margin-bottom: 14px;
+      padding: 6px 12px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.8);
+      border: 1px solid #c8d7ea;
+      color: var(--brand);
+      font-weight: 800;
+      letter-spacing: 0.03em;
+    }
+
+    .title-slide .subtitle {
+      font-size: clamp(1.2rem, 2.2vw, 1.46rem);
+      color: #36506f;
+      margin-bottom: 14px;
+    }
+
+    .title-slide .meta {
+      font-size: 1.1rem;
+      color: #51657c;
+    }
+
+    .lead { font-size: 1.4rem; color: #2b4258; }
+    .muted { color: #65768a; }
+
+    .cols-2, .cols-3, .cols-4 {
+      display: grid;
+      gap: 18px;
+      align-items: start;
+      margin: 16px 0;
+    }
+
+    .cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+
+    .card {
+      background: linear-gradient(180deg, #fbfdff 0%, #f6f9fc 100%);
+      border: 1px solid #d6e0eb;
+      border-radius: 16px;
+      padding: 20px 20px 18px;
+    }
+
+    .card p, .card li { font-size: 1.18rem; }
+
+    .callout {
+      margin: 16px 0;
+      padding: 18px 20px;
+      border-radius: 16px;
+      background: var(--brand-soft);
+      border: 1px solid #cfe3f3;
+      color: #214567;
+      border-left: 5px solid #8bb8d8;
+    }
+
+    .callout.warn {
+      background: var(--accent-soft);
+      border-color: #f0d6c5;
+      color: #6f3410;
+    }
+
+    .big-points {
+      display: grid;
+      gap: 12px;
+      margin: 16px 0;
+    }
+
+    .big-points > div {
+      padding: 16px 18px;
+      border-radius: 14px;
+      background: linear-gradient(180deg, #fbfdff 0%, #f5f9fc 100%);
+      border: 1px solid #d6e0eb;
+      color: #36506f;
+      font-size: 1.2rem;
+      line-height: 1.72;
+    }
+
+    .pill-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 16px 0 0;
+      justify-content: center;
+    }
+
+    .pill {
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: #edf5fb;
+      border: 1px solid #d1e1ee;
+      color: #315271;
+      font-size: 1.04rem;
+      font-weight: 700;
+    }
+
+    .quote-box {
+      margin: 16px 0;
+      padding: 18px 20px;
+      border-left: 5px solid #2b6da1;
+      background: #f7fbff;
+      color: #35506a;
+      border-radius: 0 14px 14px 0;
+      font-size: 1.2rem;
+      line-height: 1.72;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 16px 0;
+      font-size: 1.12rem;
+    }
+
+    th, td {
+      border: 1px solid #d7e0e9;
+      padding: 14px 16px;
+      vertical-align: top;
+      text-align: left;
+    }
+
+    th {
+      background: #f3f8fc;
+      color: #284766;
+      font-weight: 800;
+    }
+
+    tbody tr:nth-child(even) td {
+      background: #fbfdff;
+    }
+
+    ul {
+      margin: 10px 0 0;
+      padding-left: 20px;
+    }
+
+    .formula {
+      margin: 16px 0;
+      padding: 18px 20px;
+      border-radius: 14px;
+      background: #f8fbff;
+      border: 1px solid #d7e6f2;
+      color: #284766;
+      overflow: auto;
+      border-left: 5px solid #9fc3dc;
+    }
+
+    .diagram {
+      margin: 18px 0;
+      padding: 20px;
+      border-radius: 16px;
+      background: linear-gradient(180deg, #fbfdff 0%, #f5f8fc 100%);
+      border: 1px solid #d5e0ea;
+    }
+
+    .inline-runner {
+      margin-top: 10px;
+      border: 1px solid #d6e0eb;
+      border-radius: 14px;
+      background: #f7fbff;
+      overflow: hidden;
+    }
+
+    .inline-runner-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 12px;
+      background: #edf4fb;
+      border-bottom: 1px solid #d7e2ee;
+    }
+
+    .mini-run-btn {
+      appearance: none;
+      border: 0;
+      border-radius: 10px;
+      background: linear-gradient(90deg, var(--brand), var(--brand-2));
+      color: white;
+      padding: 8px 12px;
+      font-family: var(--sans);
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    .inline-status {
+      font-family: var(--mono);
+      font-size: 0.9rem;
+      color: #46617c;
+    }
+
+    .inline-output {
+      white-space: pre-wrap;
+      font-family: var(--mono);
+      font-size: 1rem;
+      padding: 14px 12px;
+      color: #203549;
+      background: #fbfdff;
+      min-height: 58px;
+    }
+
+    pre.live-code {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 14px;
+      align-items: start;
+      tab-size: 2;
+    }
+
+    .line-numbers {
+      user-select: none;
+      text-align: right;
+      color: #7891ab;
+      font-family: var(--mono);
+      font-size: 0.94rem;
+      padding-top: 2px;
+      white-space: pre;
+    }
+
+    .live-code code[contenteditable] {
+      outline: none;
+      min-height: 100%;
+    }
+
+    .two-metric {
+      display: grid;
+      gap: 18px;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      margin-top: 16px;
+    }
+
+    .metric {
+      border-radius: 18px;
+      border: 1px solid #d6e0eb;
+      background: linear-gradient(180deg, #fbfdff 0%, #f6f9fc 100%);
+      padding: 20px;
+    }
+
+    .metric strong {
+      display: block;
+      font-size: 1.9rem;
+      margin-top: 8px;
+    }
+
+    .dense-list li { margin-bottom: 8px; }
+
+    @media (max-width: 980px) {
+      body { font-size: 18px; }
+      .slide { padding: 40px 26px 68px; }
+      .cols-2, .cols-3, .cols-4, .two-metric { grid-template-columns: 1fr; }
+      pre.live-code { grid-template-columns: 36px 1fr; }
+    }
+
+    @media print {
+      body { background: #fff; }
+      .deck { margin: 0; padding: 0; gap: 0; }
+      .slide {
+        box-shadow: none;
+        page-break-after: always;
+        break-after: page;
+        border: 1px solid #b7c7d7;
+      }
+      .slide:last-child {
+        page-break-after: auto;
+        break-after: auto;
+      }
+      .present-controls { display: none !important; }
+    }
+  </style>
+</head>
+<body>
+  <main class="deck">
+    <section class="slide title-slide" id="slide-1">
+      <div>
+        <div class="title-tag">Graduate / Doctoral Python Systems</div>
+        <h1>Iterator, Generator, List, Class</h1>
+        <p class="subtitle">순서를 다시 세운 완전 개정판: iterator에서 시작해 generator를 이해하고, list를 eager 경계로 해석한 뒤, class로 모든 것을 설계 수준에서 묶는 심화 강의</p>
+        <p class="meta">설명 단락 강화 · 인터랙티브 코드 실행 포함 · 발표 모드 유지</p>
+        <div class="pill-list">
+          <span class="pill">Iterator Protocol</span>
+          <span class="pill">Lazy Evaluation</span>
+          <span class="pill">List Materialization</span>
+          <span class="pill">Descriptors</span>
+          <span class="pill">MRO</span>
+          <span class="pill">Metaprogramming</span>
+        </div>
+        <div class="formula">$$\text{Python design stack} = \text{iterator} \rightarrow \text{generator} \rightarrow \text{list} \rightarrow \text{class}$$</div>
+      </div>
+    </section>
+
+    <section class="slide" id="slide-2">
+      <span class="kicker">Part 1 · Reorganization</span>
+      <h2>재구성 원리: <code>iterator → generator → list → class</code></h2>
+      <p class="lead">강의 순서는 개념적 의존 관계를 기준으로 조직된다. class를 먼저 제시하면 객체 문법은 드러나지만, 그 객체가 구현하는 프로토콜과 실행 의미론은 뒤로 밀리게 된다.</p>
+      <p>iterator를 출발점으로 두면 Python 반복의 최소 계약이 먼저 드러난다. generator는 그 계약을 구현하는 실행 전략으로 배치되고, list는 계산 결과를 eager하게 고정하는 sequence로 해석된다. class는 마지막에 이 세 층을 API, 불변식, 타입 계약의 수준에서 통합하는 장치로 배치된다.</p>
+      <ul class="dense-list">
+        <li><strong>프로토콜 우선</strong> : 반복과 순회는 저장 구조보다 먼저 정의되는 계약으로 다루어진다.</li>
+        <li><strong>실행 전략 분리</strong> : generator는 iterator 계약을 실현하는 구체적 메커니즘으로 배치된다.</li>
+        <li><strong>설계 통합</strong> : class는 앞선 층을 도메인 API와 객체 정책으로 조직하는 최종 층이다.</li>
+      </ul>
+      <div class="formula">$$\text{Protocol} \rightarrow \text{Execution Strategy} \rightarrow \text{Materialization} \rightarrow \text{Object Design}$$</div>
+      <div class="callout">강의 구조는 문법 항목의 나열이 아니라 추상화 계층의 전개로 구성된다. 프로토콜, 실행, 저장, 설계의 순서를 유지하는 것이 전체 의미론을 가장 안정적으로 드러낸다.</div>
+    </section>
+
+    <section class="slide" id="slide-3">
+      <span class="kicker">Part 2 · Outcomes</span>
+      <h2>학습 목표</h2>
+      <div class="cols-2">
+        <div class="card">
+          <h3>개념 목표</h3>
+          <ul class="dense-list">
+            <li><code>for</code>, comprehension, <code>list()</code>, <code>sum()</code>, <code>zip()</code>, <code>enumerate()</code>가 모두 iterator protocol을 소비한다는 사실을 설명할 수 있어야 한다.</li>
+            <li>generator를 값 생산 함수가 아니라 중단 가능한 프레임, 상태 기계, 코루틴 계보의 기반으로 이해해야 한다.</li>
+            <li>list를 단순 자료형이 아니라 eager materialization boundary, replayable container, indexing-friendly sequence로 설명할 수 있어야 한다.</li>
+            <li>class를 객체 생성 문법이 아니라 namespace, descriptor, MRO, metaclass, 타입 계약의 결합으로 이해해야 한다.</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>구현 목표</h3>
+          <ul class="dense-list">
+            <li>재순회 가능한 iterable과 소모성 iterator를 구분해 API를 설계할 수 있어야 한다.</li>
+            <li><code>yield from</code>, <code>send</code>, <code>throw</code>, <code>close</code>, <code>return</code> inside generator의 의미를 구현으로 보여줄 수 있어야 한다.</li>
+            <li>어느 지점에서 list로 materialize해야 하는지, 어느 지점까지 lazy하게 유지해야 하는지 성능과 의미론을 기준으로 판단할 수 있어야 한다.</li>
+            <li>descriptor, property, dataclass, <code>__iter__</code>, <code>__getattribute__</code>, <code>super()</code>, <code>__init_subclass__</code>, metaclass를 목적에 맞게 선택할 수 있어야 한다.</li>
+          </ul>
+        </div>
+      </div>
+      <div class="formula">$$\text{mastery} = \text{conceptual semantics} + \text{implementation skill} + \text{design judgment}$$</div>
+    </section>
+
+    <section class="slide" id="slide-4">
+      <span class="kicker">Part 3 · Roadmap</span>
+      <h2>강의 로드맵</h2>
+      <table>
+        <thead>
+          <tr><th>모듈</th><th>핵심 질문</th><th>도달 목표</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Iterator</td><td>Python 반복의 최소 단위는 무엇인가?</td><td>프로토콜 중심 사고</td></tr>
+          <tr><td>Generator</td><td>상태를 가진 iterator를 가장 Pythonic하게 구현하는 방법은 무엇인가?</td><td>lazy 실행 모델 이해</td></tr>
+          <tr><td>List</td><td>lazy stream을 언제 eager sequence로 바꿔야 하는가?</td><td>materialization 전략 수립</td></tr>
+          <tr><td>Class</td><td>앞선 세 개를 어떻게 안정적인 API와 객체 모델로 묶는가?</td><td>도메인 수준 설계</td></tr>
+        </tbody>
+      </table>
+      <p>각 모듈은 정의, 실행 의미론, 설계 함의, 실패 양상을 함께 다루도록 구성된다. 사용법보다 프로토콜, 비용 모델, 검증 전략을 우선적으로 연결하는 것이 핵심 목표이다.</p>
+      <ul class="dense-list">
+        <li><strong>정의</strong> : 각 개념이 Python 객체 모델에서 무엇을 의미하는지 먼저 고정한다.</li>
+        <li><strong>실행 의미론</strong> : 값 생산, 종료, 상태 변화, materialization 시점을 함께 본다.</li>
+        <li><strong>설계 함의</strong> : 어디서 버그가 나고 어떤 추상화가 필요한지까지 연결한다.</li>
+      </ul>
+      <div class="formula">$$\text{course flow} = \text{definition} + \text{execution semantics} + \text{design implication} + \text{failure mode}$$</div>
+    </section>
+
+    <section class="slide" id="slide-5">
+      <span class="kicker">Part 4 · Iterator First</span>
+      <h2>Iterator를 출발점으로 두는 이유</h2>
+      <p class="lead">Python 반복의 최소 의미 단위는 list가 아니라 iterator protocol이다. 반복을 sequence의 부속 기능으로 해석하면 언어의 실제 실행 모델이 가려진다.</p>
+      <p>Python의 다수 내장 함수와 문법은 길이, 인덱싱, 전체 메모리 적재를 요구하지 않는다. 중심 질문은 다음 원소를 계속 생산할 수 있는가에 있다. 이 조건만 충족되면 sequence가 아니어도 상당수 연산이 성립한다.</p>
+      <ul class="dense-list">
+        <li><strong>생산 중심</strong> : 핵심 질문은 데이터를 보유하는가가 아니라 다음 값을 낼 수 있는가에 있다.</li>
+        <li><strong>메모리 독립성</strong> : 전체 적재 없이도 반복이 성립하므로 스트림 처리가 가능하다.</li>
+        <li><strong>언어 일관성</strong> : 같은 계약으로 list, file, generator, 사용자 정의 객체를 함께 다룬다.</li>
+      </ul>
+      <div class="formula">$$\text{Iteration semantics} = \text{next value production} + \text{termination contract}$$</div>
+      <div class="quote-box">Sequence 중심 사고는 데이터 보유 구조를 먼저 본다. Iterator 중심 사고는 데이터 생산 과정을 먼저 본다.</div>
+    </section>
+
+    <section class="slide" id="slide-6">
+      <span class="kicker">Part 5 · Data Model</span>
+      <h2>Python 데이터 모델에서 iteration이 차지하는 위치</h2>
+      <div class="diagram">
+        <svg viewBox="0 0 1200 260" width="100%" role="img" aria-label="iteration position in data model">
+          <rect x="30" y="70" width="230" height="120" rx="18" fill="#eef6fc" stroke="#c4d9ea"/>
+          <rect x="325" y="70" width="230" height="120" rx="18" fill="#eef9f4" stroke="#cbe2d8"/>
+          <rect x="620" y="70" width="230" height="120" rx="18" fill="#fff5ec" stroke="#ead4bf"/>
+          <rect x="915" y="70" width="230" height="120" rx="18" fill="#f4f7fb" stroke="#d5deea"/>
+          <text x="145" y="118" text-anchor="middle" font-size="28" fill="#204567" font-weight="700">Object</text>
+          <text x="145" y="150" text-anchor="middle" font-size="16" fill="#46617c">state + identity</text>
+          <text x="440" y="118" text-anchor="middle" font-size="28" fill="#1f5b4d" font-weight="700">Protocol</text>
+          <text x="440" y="150" text-anchor="middle" font-size="16" fill="#46617c">special methods</text>
+          <text x="735" y="118" text-anchor="middle" font-size="28" fill="#8f3e00" font-weight="700">Iteration</text>
+          <text x="735" y="150" text-anchor="middle" font-size="16" fill="#46617c">pull-based access</text>
+          <text x="1030" y="118" text-anchor="middle" font-size="28" fill="#334155" font-weight="700">Syntax</text>
+          <text x="1030" y="150" text-anchor="middle" font-size="16" fill="#46617c">for, sum, list, zip</text>
+          <path d="M260 130 H325" stroke="#527293" stroke-width="4"/>
+          <path d="M555 130 H620" stroke="#527293" stroke-width="4"/>
+          <path d="M850 130 H915" stroke="#527293" stroke-width="4"/>
+        </svg>
+      </div>
+      <p>Python 문법은 객체를 직접 다루기보다, 객체가 구현한 프로토콜을 통해 의미를 얻는다. iteration 역시 그중 하나이며, <code>for</code> 문은 특별한 list 문법이 아니라 iterator protocol 위에 놓인 고수준 구문으로 해석된다.</p>
+      <ul class="dense-list">
+        <li><strong>객체 층</strong> : 상태와 정체성은 객체 자체가 보유한다.</li>
+        <li><strong>프로토콜 층</strong> : special method가 문법이 이해할 계약을 제공한다.</li>
+        <li><strong>문법 층</strong> : 사용자 문법은 결국 protocol 해석 결과로 작동한다.</li>
+      </ul>
+      <div class="formula">$$\text{syntax meaning} = \text{object protocol interpretation}$$</div>
+    </section>
+
+    <section class="slide" id="slide-7">
+      <span class="kicker">Part 6 · Protocol</span>
+      <h2>Iterator protocol의 최소 규약</h2>
+      <div class="formula">$$\text{iterator} \iff \text{has } \_\_iter\_\_() \text{ returning self and } \_\_next\_\_()$$</div>
+      <div class="cols-2">
+        <div class="card">
+          <h3><code>iter(obj)</code></h3>
+          <p>객체에게 순회를 시작할 수 있는 객체를 요청한다. iterable은 보통 새 iterator를 반환하고, iterator는 자기 자신을 반환한다.</p>
+        </div>
+        <div class="card">
+          <h3><code>next(it)</code></h3>
+          <p>iterator에게 다음 원소를 요청한다. 더 이상 줄 값이 없으면 <code>StopIteration</code>을 발생시킨다.</p>
+        </div>
+      </div>
+      <p>이 규약은 작지만 표현력이 크다. 값 하나를 산출하는 계약만 지키면 list, 파일, 데이터베이스 커서, 네트워크 스트림을 동일한 추상화로 다룰 수 있다.</p>
+      <ul class="dense-list">
+        <li><strong><code>__iter__</code></strong> : 순회 시작점을 제공한다. iterable은 보통 새 iterator를 반환하고, iterator는 자기 자신을 반환한다.</li>
+        <li><strong><code>__next__</code></strong> : 상태를 전진시키며 다음 값을 반환한다. 따라서 iterator는 본질적으로 상태 기계다.</li>
+        <li><strong><code>StopIteration</code></strong> : 단순 오류가 아니라 정상 종료 신호다. 반복 문법 전체가 이 예외를 전제로 작동한다.</li>
+      </ul>
+    </section>
+
+    <section class="slide" id="slide-8">
+      <span class="kicker">Part 7 · Desugaring</span>
+      <h2><code>for</code> 문은 내부적으로 무엇을 하는가</h2>
+      <div class="cols-2">
+        <div class="card">
+          <h3>표면 문법</h3>
+          <pre><code>for x in data:
+    body(x)</code></pre>
+        </div>
+        <div class="card">
+          <h3>개념적 전개</h3>
+          <pre><code>_it = iter(data)
+while True:
+    try:
+        x = next(_it)
+    except StopIteration:
+        break
+    body(x)</code></pre>
+        </div>
+      </div>
+      <p>이 전개는 반복이 sequence에 귀속된 개념이 아니라는 사실을 보여 준다. <code>data</code>는 길이가 없어도 되고, 인덱싱을 지원하지 않아도 되며, 무한할 수도 있다. 필요한 것은 오직 다음 값을 요청할 수 있는 계약뿐이다.</p>
+      <p>대규모 데이터 파이프라인이나 streaming inference 시스템에서는 전체 데이터를 list로 가정하는 모델이 성립하지 않는다. 반복 의미론을 sequence보다 더 낮은 층에서 이해해야 하는 이유가 여기에 있다.</p>
+      <ul class="dense-list">
+        <li><strong>길이 비필수</strong> : 반복은 <code>len()</code> 가능성과 독립적이다.</li>
+        <li><strong>인덱싱 비필수</strong> : 순회는 순차 접근 계약만 필요로 한다.</li>
+        <li><strong>무한 구조 허용</strong> : 종료 불확정 스트림도 protocol 수준에서는 반복 대상이 될 수 있다.</li>
+      </ul>
+      <div class="formula">$$\texttt{for }x\texttt{ in }y \;\equiv\; \texttt{iter}(y) \;\circ\; \texttt{next}(\cdot) \;\circ\; \texttt{StopIteration handling}$$</div>
+    </section>
+
+    <section class="slide" id="slide-9">
+      <span class="kicker">Part 8 · Taxonomy</span>
+      <h2>Iterable, Iterator, Sequence를 구분해서 생각하기</h2>
+      <table>
+        <thead>
+          <tr><th>종류</th><th>재순회 가능?</th><th>상태 보유?</th><th>대표 예시</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Iterable</td><td>대체로 가능</td><td>필수 아님</td><td><code>list</code>, <code>set</code>, 사용자 컨테이너</td></tr>
+          <tr><td>Iterator</td><td>대체로 불가</td><td>필수</td><td>파일 객체, generator object</td></tr>
+          <tr><td>Sequence</td><td>가능</td><td>컨테이너 중심</td><td><code>list</code>, <code>tuple</code>, <code>str</code></td></tr>
+        </tbody>
+      </table>
+      <p>이 구분을 흐리게 다루면 API 설계의 계약이 붕괴한다. 함수가 iterable을 기대하는지 iterator를 기대하는지 문서화하지 않으면, 재사용 가능한 데이터셋과 일회성 스트림이 동일한 타입처럼 오해된다.</p>
+      <div class="callout warn">가장 흔한 오류는 iterator를 재순회 가능한 데이터로 오해하여 두 번째 소비에서 빈 결과를 얻는 형태로 나타난다.</div>
+      <ul class="dense-list">
+        <li><strong>iterable</strong> : 반복을 시작할 수 있는 객체이며 보통 새 iterator를 제공한다.</li>
+        <li><strong>iterator</strong> : 현재 순회 위치를 내부 상태로 보유하는 소모성 객체다.</li>
+        <li><strong>sequence</strong> : 반복 가능성 외에도 길이, 인덱싱, 종종 슬라이싱을 제공하는 더 강한 추상화다.</li>
+      </ul>
+      <div class="formula">$$\text{Iterator} \subset \text{Iterable},\qquad \text{Sequence} \subset \text{Iterable},\qquad \text{Iterator} \neq \text{Sequence}$$</div>
+    </section>
+
+    <section class="slide" id="slide-10">
+      <span class="kicker">Part 9 · Termination</span>
+      <h2>왜 종료는 특별 값이 아니라 <code>StopIteration</code> 예외인가</h2>
+      <p class="lead">종료를 값이 아니라 예외로 표현하는 선택은 iteration 의미론의 핵심 결정이다.</p>
+      <p>종료를 <code>None</code> 같은 특별 값으로 표현했다면 그 값은 정상 데이터로 사용할 수 없게 된다. 예외 기반 종료는 데이터 영역과 종료 신호를 분리하며, 그 결과 <code>None</code>, <code>0</code>, 빈 문자열, 빈 리스트도 정상 원소가 될 수 있다.</p>
+      <pre><code>it = iter([None, 0, "", []])
+print(list(it))</code></pre>
+      <p>iteration은 값 생산과 종료 통지를 분리하는 프로토콜이다. 이 분리는 generator의 <code>return</code> 값, <code>yield from</code> 위임, async iteration 종료 규칙으로 이어진다.</p>
+      <ul class="dense-list">
+        <li><strong>데이터 보존</strong> : <code>None</code>이나 빈 문자열도 정상 데이터로 유지된다.</li>
+        <li><strong>제어 흐름 분리</strong> : 값 영역과 종료 신호가 분리되어 언어 차원의 반복 제어가 단순해진다.</li>
+        <li><strong>고급 문법 연결</strong> : generator의 <code>return</code>, <code>yield from</code>, async iteration도 모두 이 종료 모델 위에서 설명된다.</li>
+      </ul>
+      <div class="formula">$$\text{termination} = \text{exception channel},\qquad \text{data} \cap \text{termination signal} = \varnothing$$</div>
+    </section>
+
+    <section class="slide" id="slide-11">
+      <span class="kicker">Part 10 · Rare Syntax</span>
+      <h2><code>iter(callable, sentinel)</code> 문법은 왜 존재하는가</h2>
+      <pre><code>from functools import partial
+
+with open("binary.log", "rb") as f:
+    for chunk in iter(partial(f.read, 4096), b""):
+        process(chunk)</code></pre>
+      <p>이 문법은 callable을 반복 호출하여 sentinel이 나올 때까지 iterator를 구성한다. 즉, 종료값이 명확한 pull-based API를 iterator protocol로 감싸는 적응기 역할을 수행한다.</p>
+      <p>파일 블록 읽기, 장비 데이터 폴링, 외부 C 라이브러리 래핑처럼 반복 호출이 자연스러운 영역에서 특히 효과적이다. <code>while True</code>와 <code>break</code> 중심 제어를 더 선언적인 순회 표현으로 치환한다.</p>
+      <ul class="dense-list">
+        <li><strong>적응기</strong> : 반복 호출형 API를 iterator 소비자와 연결한다.</li>
+        <li><strong>종료 명시성</strong> : sentinel이 종료 조건을 값 수준에서 분명히 제공한다.</li>
+        <li><strong>제어 단순화</strong> : 저수준 루프를 protocol 기반 순회로 치환한다.</li>
+      </ul>
+      <div class="formula">$$\texttt{iter}(f, s) = f(), f(), \ldots \text{ until } f() = s$$</div>
+    </section>
+
+    <section class="slide" id="slide-12">
+      <span class="kicker">Part 11 · Consumers</span>
+      <h2>Iteration을 소비하는 내장 문법과 함수들</h2>
+      <div class="cols-3">
+        <div class="card">
+          <h3>문법</h3>
+          <p><code>for</code>, unpacking, comprehension, <code>in</code>, pattern matching 일부는 iteration을 직간접적으로 소비한다.</p>
+        </div>
+        <div class="card">
+          <h3>함수</h3>
+          <p><code>sum</code>, <code>any</code>, <code>all</code>, <code>max</code>, <code>min</code>, <code>list</code>, <code>tuple</code>, <code>set</code>, <code>dict</code> 등은 iterable을 받는다.</p>
+        </div>
+        <div class="card">
+          <h3>도구</h3>
+          <p><code>zip</code>, <code>enumerate</code>, <code>map</code>, <code>filter</code>, <code>itertools</code>는 iterator combinator 역할을 수행한다.</p>
+        </div>
+      </div>
+      <p>이 구조는 iterator를 정확히 설계하면 Python 생태계의 상당수 문법과 도구를 추가 어댑터 없이 활용할 수 있음을 의미한다. 반대로 iterator 규약을 부정확하게 구현하면, 표면상 동작하더라도 문법과 라이브러리의 기대를 깨뜨릴 수 있다.</p>
+      <ul class="dense-list">
+        <li><strong>문법 소비자</strong> : <code>for</code>, comprehension, unpacking이 반복 계약을 직접 해석한다.</li>
+        <li><strong>함수 소비자</strong> : 집계 함수와 변환 함수가 같은 계약 위에서 작동한다.</li>
+        <li><strong>조합 가능성</strong> : 올바른 iterator 하나가 다수 도구와 즉시 호환된다.</li>
+      </ul>
+      <div class="formula">$$\text{ecosystem reuse} = \text{correct iterator contract} + \text{consumer interoperability}$$</div>
+    </section>
+
+    <section class="slide" id="slide-13">
+      <span class="kicker">Part 12 · Live Lab</span>
+      <h2>직접 구현해 보는 커스텀 iterator</h2>
+      <p>다음 코드는 짝수만 순회하는 컨테이너와 iterator를 분리하여 구현한 예시이다. 컨테이너와 순회 상태를 분리하는 구조는 재순회 가능성과 소모성 상태를 동시에 설명하는 데 적합하다.</p>
+      <pre class="live-code"><code>class EvenNumbers:
+    def __init__(self, start: int, stop: int):
+        self.start = start if start % 2 == 0 else start + 1
+        self.stop = stop
+
+    def __iter__(self):
+        return EvenNumbersIterator(self.start, self.stop)
+
+
+class EvenNumbersIterator:
+    def __init__(self, current: int, stop: int):
+        self.current = current
+        self.stop = stop
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        if self.current >= self.stop:
+            raise StopIteration
+        value = self.current
+        self.current += 2
+        return value
+
+
+data = EvenNumbers(3, 15)
+print(list(data))
+print(list(data))</code></pre>
+      <p><code>EvenNumbers</code>는 재순회 가능한 iterable이다. <code>list(data)</code>를 두 번 호출해도 동일한 결과가 나오는 이유는 내부에서 매번 새로운 <code>EvenNumbersIterator</code>를 생성하기 때문이다.</p>
+      <ul class="dense-list">
+        <li><strong>컨테이너</strong> : 반복 정책과 입력 범위를 보존하되 순회 상태는 저장하지 않는다.</li>
+        <li><strong>iterator</strong> : 현재 위치와 종료 조건을 가지고 실제 상태 전이를 담당한다.</li>
+        <li><strong>재순회성</strong> : <code>__iter__</code>가 새 iterator를 반환해야 동일 결과가 재현된다.</li>
+      </ul>
+      <div class="formula">$$\text{reiterable container} \Rightarrow \forall k,\ \texttt{iter(obj)}_k \text{ are independent iterators}$$</div>
+    </section>
+
+    <section class="slide" id="slide-14">
+      <span class="kicker">Part 13 · Reiterability</span>
+      <h2>재순회 가능한 컨테이너와 one-shot stream을 구분하는 설계 규칙</h2>
+      <table>
+        <thead>
+          <tr><th>상황</th><th>권장 추상화</th><th>이유</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>여러 epoch 학습</td><td>Iterable container</td><td>매 epoch 새 iterator 필요</td></tr>
+          <tr><td>실시간 로그 tail</td><td>Iterator / generator</td><td>본질적으로 소모성</td></tr>
+          <tr><td>중간 변환 파이프라인</td><td>Generator</td><td>메모리 효율과 조합성</td></tr>
+        </tbody>
+      </table>
+      <p>특히 데이터 과학과 머신러닝 코드에서는 이 구분이 치명적이다. 학습 데이터셋은 보통 iterable이어야 하고, 배치 생산기나 네트워크 스트림은 iterator일 가능성이 높다. 이 둘을 혼동하면 두 번째 epoch부터 데이터가 사라지는 버그가 쉽게 발생한다.</p>
+      <ul class="dense-list">
+        <li><strong>epoch 요구</strong> : 학습 데이터셋은 매 epoch 새 순회를 시작할 수 있어야 한다.</li>
+        <li><strong>실시간 소모성</strong> : 로그 tail이나 네트워크 스트림은 지나간 데이터를 다시 주지 못한다.</li>
+        <li><strong>API 명시성</strong> : 재순회 가능 여부는 타입과 문서에서 분명히 드러나야 한다.</li>
+      </ul>
+      <div class="formula">$$\text{reiterable source} \Rightarrow \text{fresh iterator per traversal},\qquad \text{one-shot stream} \Rightarrow \text{single consumption}$$</div>
+    </section>
+
+    <section class="slide" id="slide-15">
+      <span class="kicker">Part 14 · Streams</span>
+      <h2>파일 객체는 왜 좋은 iterator 예시인가</h2>
+      <pre><code>with open("train.log", "r", encoding="utf-8") as f:
+    for line in f:
+        if "loss" in line:
+            print(line.rstrip())</code></pre>
+      <p>파일 객체는 sequence가 아니다. 인덱싱이 없고, 길이가 사전에 결정되지 않을 수 있으며, 전체 내용을 메모리에 적재하지 않는다. 그럼에도 <code>for</code> 문과 직접 결합된다. 이유는 iterator protocol을 구현하기 때문이다.</p>
+      <p>이 사례는 Python 반복 모델이 대용량 데이터 처리에 유리한 이유를 보여 준다. 반복 가능한 객체의 범위를 sequence보다 넓게 잡았기 때문에, 메모리 친화적이고 I/O 친화적인 설계가 가능하다.</p>
+      <ul class="dense-list">
+        <li><strong>I/O 친화성</strong> : 한 줄씩 읽으므로 전체 파일 적재가 필요 없다.</li>
+        <li><strong>상태 보유</strong> : 현재 파일 포인터 위치가 iterator 상태 역할을 수행한다.</li>
+        <li><strong>실전성</strong> : 로그 분석과 대용량 처리에서 가장 대표적인 iterator 사례다.</li>
+      </ul>
+      <div class="formula">$$\text{stream iteration} = \text{incremental I/O} + \text{protocol-conformant traversal}$$</div>
+    </section>
+
+    <section class="slide" id="slide-16">
+      <span class="kicker">Part 15 · Algebra</span>
+      <h2><code>itertools</code>는 iterator 조합 대수이다</h2>
+      <pre><code>from itertools import islice, chain, count, takewhile
+
+odds = (2 * n + 1 for n in count())
+small_odds = takewhile(lambda x: x &lt; 20, odds)
+print(list(islice(small_odds, 5)))
+print(list(chain([1, 2], [3, 4], [5, 6])))</code></pre>
+      <p><code>itertools</code>는 단순 편의 함수 집합이 아니라 iterator 조합 대수로 해석할 수 있다. iterator를 결합하고 제한하고 변형하는 연산들이 폐쇄적으로 구성되기 때문에, 중간 list 없이도 복합적인 흐름을 표현할 수 있다.</p>
+      <p>이 지점에서 generator의 필요성이 드러난다. iterator를 클래스로 직접 구현하는 방식은 정확하지만 장황하다. 동일한 상태 기계를 함수 본문으로 더 간결하게 기술하는 수단이 generator이다.</p>
+      <ul class="dense-list">
+        <li><strong>폐쇄성</strong> : iterator를 입력받아 다시 iterator를 돌려주는 연산이 많다.</li>
+        <li><strong>지연 유지</strong> : 중간 materialization 없이도 다단계 변환이 가능하다.</li>
+        <li><strong>generator 연결</strong> : 사용자 정의 조합 연산을 가장 간결하게 기술하는 수단이 generator다.</li>
+      </ul>
+      <div class="formula">$$\text{iterator pipeline} = f_n \circ f_{n-1} \circ \cdots \circ f_1(\text{source iterator})$$</div>
+    </section>
+
+    <section class="slide" id="slide-17">
+      <span class="kicker">Part 16 · Syntactic Companions</span>
+      <h2><code>enumerate</code>, <code>zip</code>, <code>reversed</code>도 iterator 세계의 일부다</h2>
+      <table>
+        <thead>
+          <tr><th>도구</th><th>역할</th><th>핵심 포인트</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>enumerate(xs)</code></td><td>인덱스-원소 쌍 생산</td><td>인덱스를 별도 상태로 덧씌운 iterator</td></tr>
+          <tr><td><code>zip(a, b)</code></td><td>동시 순회</td><td>가장 짧은 입력에서 멈춤</td></tr>
+          <tr><td><code>reversed(xs)</code></td><td>역순 접근</td><td>sequence 특성이 필요하거나 <code>__reversed__</code> 필요</td></tr>
+        </tbody>
+      </table>
+      <p><code>enumerate</code>와 <code>zip</code>는 일반 iterable 위에서 작동한다. 반면 <code>reversed</code>는 역방향 접근 가능성이 필요하므로 더 강한 계약을 요구한다. 이 차이는 프로토콜 설계의 정밀도를 보여 준다.</p>
+      <ul class="dense-list">
+        <li><strong><code>enumerate</code></strong> : 값 스트림 위에 인덱스 상태를 덧씌운다.</li>
+        <li><strong><code>zip</code></strong> : 여러 입력의 진행을 동기화하며 가장 짧은 입력에서 종료한다.</li>
+        <li><strong><code>reversed</code></strong> : 역방향 접근이 가능한 더 강한 계약을 필요로 한다.</li>
+      </ul>
+      <div class="formula">$$\texttt{enumerate}(xs) \equiv \texttt{zip}(\texttt{count}(), xs),\qquad \texttt{reversed}(xs) \Rightarrow \text{reverse-access contract}$$</div>
+    </section>
+
+    <section class="slide" id="slide-18">
+      <span class="kicker">Part 17 · Debugging</span>
+      <h2>Iterator 디버깅: 가장 먼저 “이미 소비되었는가”를 의심하라</h2>
+      <pre><code>it = iter(range(5))
+print(next(it))
+print(list(it))
+print(list(it))</code></pre>
+      <p>lazy 시스템의 버그는 값 문제만이 아니다. 평가 시점과 소유권 문제도 함께 다루어야 한다. iterator 디버깅의 첫 질문은 항상 동일하다. 해당 iterator가 이미 소비되었는가.</p>
+      <p>실무에서는 로깅 함수, 통계 함수, 디버그 출력 함수 하나가 iterator를 미리 소모하는 경우가 많다. 따라서 인터페이스 설계 시 <code>Iterable[T]</code>와 <code>Iterator[T]</code>를 구분해 표기하는 것이 중요하다.</p>
+      <ul class="dense-list">
+        <li><strong>소유권 추적</strong> : 누가 iterator를 소비했는지 먼저 확인해야 한다.</li>
+        <li><strong>평가 시점 추적</strong> : 중간 출력 하나가 전체 결과를 바꿀 수 있다.</li>
+        <li><strong>완화 전략</strong> : materialization이나 reiterable container로 추론 가능성을 높인다.</li>
+      </ul>
+      <div class="formula">$$\text{debug diagnosis} = \text{consumption state} + \text{ownership trace} + \text{source lifetime}$$</div>
+    </section>
+
+    <section class="slide" id="slide-19">
+      <span class="kicker">Part 18 · Transition</span>
+      <h2>Generator는 iterator 구현 전략이다</h2>
+      <p class="lead">Iterator를 클래스로 직접 구현하는 방식은 상태와 종료 규칙을 명시적으로 드러낸다. 그러나 상태 변수가 많아질수록 코드가 장황해진다. Generator는 동일한 protocol을 더 압축적으로 기술하는 수단이다.</p>
+      <p>Generator의 핵심은 다음 값의 계산과 중단 지점의 보존을 동시에 기술하는 데 있다. 따라서 generator는 값 생산 장치인 동시에 프레임 보존 장치로 해석된다.</p>
+      <ul class="dense-list">
+        <li><strong>외부 관찰</strong> : generator도 결국 iterator protocol을 만족하는 객체로 보인다.</li>
+        <li><strong>표현 차이</strong> : class iterator는 상태를 직접 저장하고 generator는 프레임이 상태를 저장한다.</li>
+        <li><strong>선택 기준</strong> : 상태가 단순하면 generator가, 다중 메서드 계약이 필요하면 class가 유리하다.</li>
+      </ul>
+      <div class="formula">$$\text{generator} \subset \text{iterator implementations}$$</div>
+      <div class="quote-box">Generator는 iterator의 대체 개념이 아니라 iterator를 기술하는 함수형 표현이다. 외부 관찰 결과는 iterator protocol로 수렴한다.</div>
+    </section>
+
+    <section class="slide" id="slide-20">
+      <span class="kicker">Part 19 · Yield</span>
+      <h2><code>yield</code>는 값을 내보내면서 프레임을 멈춘다</h2>
+      <div class="cols-2">
+        <div class="card">
+          <h3>일반 함수</h3>
+          <pre><code>def f():
+    x = 10
+    return x</code></pre>
+          <p>호출 시 즉시 실행되고, 반환과 함께 프레임이 사라집니다.</p>
+        </div>
+        <div class="card">
+          <h3>Generator 함수</h3>
+          <pre><code>def g():
+    x = 10
+    yield x
+    yield x + 1</code></pre>
+          <p>호출 시 즉시 실행되지 않고 generator object를 만들며, <code>next()</code> 호출마다 재개된다.</p>
+        </div>
+      </div>
+      <div class="formula">$$\text{generator} = \text{suspended frame} + \text{locals} + \text{instruction pointer}$$</div>
+      <p>이 식은 generator의 핵심을 직접적으로 드러낸다. generator는 단순한 함수 결과값이 아니라 아직 종료되지 않은 실행 문맥 그 자체이다.</p>
+      <ul class="dense-list">
+        <li><strong>지역 변수 보존</strong> : 함수가 종료되지 않았으므로 지역 상태가 그대로 유지된다.</li>
+        <li><strong>중단 위치 보존</strong> : 다음 <code>next()</code>나 <code>send()</code>는 마지막 <code>yield</code> 다음 줄부터 재개된다.</li>
+        <li><strong>프레임 기반 사고</strong> : generator는 값보다 재개 가능한 실행 상태로 이해되어야 한다.</li>
+      </ul>
+    </section>
+
+    <section class="slide" id="slide-21">
+      <span class="kicker">Part 20 · Frame Model</span>
+      <h2>Generator object는 살아 있는 실행 상태를 품고 있다</h2>
+      <pre><code>import inspect
+
+def counter():
+    n = 0
+    while n &lt; 3:
+        yield n
+        n += 1
+
+g = counter()
+print(inspect.getgeneratorstate(g))
+print(next(g))
+print(inspect.getgeneratorstate(g))
+print(g.gi_frame.f_locals)</code></pre>
+      <p><code>g.gi_frame.f_locals</code>는 지역 변수 상태가 보존되어 있음을 드러낸다. generator가 stateful iterator인 이유가 여기에 있다.</p>
+      <p>디버깅에서는 값 문제와 제어 흐름 문제를 동시에 관찰해야 한다. generator는 값과 흐름을 동일한 객체 안에 결합하기 때문이다.</p>
+      <ul class="dense-list">
+        <li><strong>프레임 보존</strong> : 지역 변수와 명령 위치가 다음 재개를 위해 유지된다.</li>
+        <li><strong>상태 전이</strong> : CREATED, SUSPENDED, RUNNING, CLOSED의 전이가 실행 의미론을 이룬다.</li>
+        <li><strong>관찰 가능성</strong> : <code>inspect</code>와 프레임 접근으로 내부 상태를 진단할 수 있다.</li>
+      </ul>
+      <div class="formula">$$\text{generator state} \in \{\text{CREATED},\ \text{SUSPENDED},\ \text{RUNNING},\ \text{CLOSED}\}$$</div>
+    </section>
+
+    <section class="slide" id="slide-22">
+      <span class="kicker">Part 21 · Generator Expression</span>
+      <h2>Generator expression은 lazy comprehension이다</h2>
+      <table>
+        <thead>
+          <tr><th>형식</th><th>평가 시점</th><th>메모리 특성</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>[f(x) for x in xs]</code></td><td>즉시</td><td>전체 결과를 저장</td></tr>
+          <tr><td><code>(f(x) for x in xs)</code></td><td>지연</td><td>원소 단위 생산</td></tr>
+        </tbody>
+      </table>
+      <pre><code>total = sum(x * x for x in range(10_000_000))</code></pre>
+      <p>문법은 유사하지만 의미론은 다르다. list comprehension은 데이터를 즉시 materialize하고, generator expression은 필요 시점에 데이터를 생산한다. 이 차이는 메모리뿐 아니라 오류 발생 시점, 부수효과 시점, 디버깅 난이도까지 바꾼다.</p>
+      <ul class="dense-list">
+        <li><strong>생성 시점</strong> : list comprehension은 즉시 실행되고 generator expression은 소비 시점까지 지연된다.</li>
+        <li><strong>관측 차이</strong> : 외부 상태 변화가 늦게 반영될 수 있어 결과 시점이 달라진다.</li>
+        <li><strong>사용 맥락</strong> : 단일 패스 집계에는 generator가, 재사용과 디버깅에는 list가 더 유리할 수 있다.</li>
+      </ul>
+      <div class="formula">$$[\;f(x)\;] \Rightarrow \text{eager materialization},\qquad (\;f(x)\;) \Rightarrow \text{lazy suspension}$$</div>
+    </section>
+
+    <section class="slide" id="slide-23">
+      <span class="kicker">Part 22 · Live Lab</span>
+      <h2>배치 분할 generator 직접 구현</h2>
+      <p>lazy batching은 generator의 대표적 사용처이다. 전체 데이터를 한꺼번에 들고 있지 않으면서도 소비자에게 일정한 배치 단위 인터페이스를 제공한다.</p>
+      <pre class="live-code"><code>def chunked(iterable, size: int):
+    bucket = []
+    for item in iterable:
+        bucket.append(item)
+        if len(bucket) == size:
+            yield bucket
+            bucket = []
+    if bucket:
+        yield bucket
+
+
+rows = [f"row-{i}" for i in range(1, 11)]
+for batch in chunked(rows, 4):
+    print(batch)</code></pre>
+      <p>이 예시는 generator가 배열 생성 함수가 아니라 배치 생산 시점을 제어하는 실행 장치임을 드러낸다.</p>
+      <ul class="dense-list">
+        <li><strong>배치 경계</strong> : 소비자에게는 고정된 묶음 단위 인터페이스가 제공된다.</li>
+        <li><strong>메모리 제한</strong> : 현재 bucket만 유지하므로 입력 전체 크기와 독립적이다.</li>
+        <li><strong>실무 연결</strong> : 미니배치 학습과 블록 단위 처리에 직접 대응한다.</li>
+      </ul>
+      <div class="formula">$$\text{chunked stream} = (x_1,\ldots,x_k), (x_{k+1},\ldots,x_{2k}), \ldots$$</div>
+    </section>
+
+    <section class="slide" id="slide-24">
+      <span class="kicker">Part 23 · Coroutine Entry</span>
+      <h2><code>send()</code>는 generator를 양방향 상태 기계로 만든다</h2>
+      <pre><code>def echo():
+    value = yield "ready"
+    while True:
+        value = yield f"got:{value}"</code></pre>
+      <p>iterator는 보통 바깥에서 <code>next()</code>로 값을 꺼내는 구조로 소비된다. 그러나 generator는 <code>send()</code>를 통해 값 주입도 받을 수 있으며, 이때 단순 생산기를 넘어 양방향 상태 기계로 해석된다.</p>
+      <p>이 특성은 streaming statistics, coroutine, incremental parser, event-driven state machine 설계에 직접 연결된다.</p>
+      <ul class="dense-list">
+        <li><strong>입력 채널</strong> : <code>yield</code> 표현식은 출력 지점이면서 동시에 입력 수신 지점이 된다.</li>
+        <li><strong>상태 갱신</strong> : 외부에서 주입된 값이 generator 내부 상태를 즉시 전이시킨다.</li>
+        <li><strong>코루틴 성격</strong> : 값 생산기에서 상호작용적 상태 기계로 해석 범위가 넓어진다.</li>
+      </ul>
+      <div class="formula">$$\texttt{send}(v):\ \text{resume generator with }(\texttt{yield expression} = v)$$</div>
+    </section>
+
+    <section class="slide" id="slide-25">
+      <span class="kicker">Part 24 · Live Lab</span>
+      <h2>실시간 누적 평균 generator</h2>
+      <pre class="live-code"><code>def running_average():
+    total = 0.0
+    count = 0
+    avg = 0.0
+    while True:
+        x = yield avg
+        if x is None:
+            return avg
+        total += x
+        count += 1
+        avg = total / count
+
+
+g = running_average()
+print(next(g))
+print(g.send(10))
+print(g.send(20))
+print(g.send(30))
+
+try:
+    g.send(None)
+except StopIteration as e:
+    print("final avg:", e.value)</code></pre>
+      <p>이 예제는 generator가 단순 loop가 아니라 online algorithm 컨테이너로 기능할 수 있음을 나타낸다. 평균은 새 데이터가 들어올 때마다 즉시 갱신되고, 종료 시 최종 결과도 반환된다.</p>
+      <ul class="dense-list">
+        <li><strong>온라인 계산</strong> : 전체 데이터 저장 없이도 누적 통계를 갱신한다.</li>
+        <li><strong>종료값 회수</strong> : <code>StopIteration.value</code>가 최종 요약치를 운반한다.</li>
+        <li><strong>상호작용성</strong> : 매 입력마다 내부 상태가 갱신되는 계산 객체로 볼 수 있다.</li>
+      </ul>
+      <div class="formula">$$\bar{x}_n = \frac{1}{n}\sum_{i=1}^{n}x_i$$</div>
+    </section>
+
+    <section class="slide" id="slide-26">
+      <span class="kicker">Part 25 · Control</span>
+      <h2><code>throw()</code>, <code>close()</code>, <code>try/finally</code>는 제어 흐름 설계를 위한 장치다</h2>
+      <table>
+        <thead>
+          <tr><th>연산</th><th>의미</th><th>주요 사용처</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>g.throw(exc)</code></td><td>예외를 generator 내부에 주입</td><td>오류 경로 테스트, 복구 로직</td></tr>
+          <tr><td><code>g.close()</code></td><td><code>GeneratorExit</code> 전달</td><td>자원 정리, 조기 종료</td></tr>
+          <tr><td><code>try/finally</code></td><td>종료 시 cleanup 보장</td><td>파일/소켓/트랜잭션 관리</td></tr>
+        </tbody>
+      </table>
+      <p>고급 generator 설계는 단순한 <code>yield</code> 사용법을 넘는다. 종료 정책과 예외 경로를 함께 설계해야 한다. lazy computation이 자원과 결합되면 종료를 정확히 처리하는 일이 생성보다 더 중요해진다.</p>
+      <ul class="dense-list">
+        <li><strong><code>throw</code></strong> : 내부 복구 경로와 예외 안전성을 시험하는 통로다.</li>
+        <li><strong><code>close</code></strong> : 조기 종료를 명시적으로 전달해 cleanup을 강제한다.</li>
+        <li><strong><code>finally</code></strong> : 정상·비정상 종료 모두에서 자원 회수를 보장한다.</li>
+      </ul>
+      <div class="formula">$$\text{generator lifecycle} = \text{yield} + \text{exception injection} + \text{deterministic cleanup}$$</div>
+    </section>
+
+    <section class="slide" id="slide-27">
+      <span class="kicker">Part 26 · Delegation</span>
+      <h2><code>yield from</code>은 루프 축약이 아니라 위임 메커니즘이다</h2>
+      <pre><code>def flatten(blocks):
+    for block in blocks:
+        yield from block</code></pre>
+      <pre><code>def sub():
+    yield 1
+    yield 2
+    return "done"
+
+def outer():
+    result = yield from sub()
+    yield result</code></pre>
+      <p><code>yield from</code>은 단순히 <code>for x in sub: yield x</code>의 줄임말이 아니다. 하위 generator의 <code>send</code>, <code>throw</code>, <code>close</code>, 그리고 종료값까지 위임한다. 따라서 recursive generator 구조를 정확하게 표현하는 데 적합하다.</p>
+      <ul class="dense-list">
+        <li><strong>값 위임</strong> : 하위 iterable이 생산한 값을 그대로 바깥으로 전달한다.</li>
+        <li><strong>제어 위임</strong> : <code>send</code>, <code>throw</code>, <code>close</code> 같은 상호작용도 하위 generator로 전달된다.</li>
+        <li><strong>종료값 회수</strong> : 하위 generator의 <code>return value</code>를 받아 상위 단계의 후속 로직에 사용할 수 있다.</li>
+      </ul>
+      <div class="formula">$$\texttt{yield from }g \Rightarrow \text{delegate values} + \text{delegate control} + \text{collect return value}$$</div>
+    </section>
+
+    <section class="slide" id="slide-28">
+      <span class="kicker">Part 27 · Return Value</span>
+      <h2>Generator 안의 <code>return</code>은 무엇을 뜻하는가</h2>
+      <pre><code>def sub():
+    yield "token"
+    return 42
+
+g = sub()
+print(next(g))
+try:
+    next(g)
+except StopIteration as e:
+    print(e.value)</code></pre>
+      <p>generator 내부의 <code>return x</code>는 바깥에서 <code>StopIteration(x)</code>로 관찰된다. 종료값은 예외 객체의 payload로 운반되며, <code>yield from</code>이 이를 회수할 수 있다.</p>
+      <p>이 구조는 recursive descent parser나 coroutine composition에서 중요하다. 하위 단계가 최종 계산 결과를 반환하고, 상위 단계가 그 값을 받아 전체 제어를 이어갈 수 있기 때문이다.</p>
+      <ul class="dense-list">
+        <li><strong>이중 채널</strong> : 산출값과 최종 반환값이 서로 다른 경로로 전달된다.</li>
+        <li><strong>합성 가능성</strong> : 상위 generator가 하위 계산 결과를 이어받아 후속 제어를 수행한다.</li>
+        <li><strong>파서 적합성</strong> : 토큰 소비와 의미 결과 반환을 동시에 표현할 수 있다.</li>
+      </ul>
+      <div class="formula">$$\texttt{return }r \text{ in generator} \Rightarrow \texttt{StopIteration}(r)$$</div>
+    </section>
+
+    <section class="slide" id="slide-29">
+      <span class="kicker">Part 28 · PEP 479</span>
+      <h2>왜 generator 내부에서 새는 <code>StopIteration</code>은 위험한가</h2>
+      <p class="lead">Generator 본문 안에서 의도치 않은 <code>StopIteration</code>이 조용한 종료로 해석되면 데이터 손실 버그가 은폐될 수 있다.</p>
+      <p>PEP 479 이후, generator 안에서 새는 <code>StopIteration</code>은 <code>RuntimeError</code>로 변환된다. 조용한 종료 대신 명시적 실패를 선택한 규칙이며, 재현성 요구가 높은 코드에서 특히 중요하다.</p>
+      <div class="callout warn">고급 Python에서는 명시적으로 실패하는 코드보다 조용히 잘못된 결과를 만드는 코드가 더 위험하다. iterator와 generator 관련 버그가 대표적 사례다.</div>
+      <ul class="dense-list">
+        <li><strong>조용한 실패 방지</strong> : 내부 실수를 정상 종료로 오인하지 않도록 한다.</li>
+        <li><strong>가시성 강화</strong> : 오류가 runtime failure로 드러나 원인 추적이 쉬워진다.</li>
+        <li><strong>의미론 안정화</strong> : 종료는 의도적 <code>return</code> 경로로만 표현되도록 규율한다.</li>
+      </ul>
+      <div class="formula">$$\texttt{StopIteration leaking from generator body} \Rightarrow \texttt{RuntimeError}$$</div>
+    </section>
+
+    <section class="slide" id="slide-30">
+      <span class="kicker">Part 29 · Live Lab</span>
+      <h2>Generator 기반 tokenizer</h2>
+      <pre class="live-code"><code>def tokenize(text: str):
+    buf = []
+    for ch in text:
+        if ch.isalnum() or ch == "_":
+            buf.append(ch)
+        else:
+            if buf:
+                yield ("WORD", "".join(buf))
+                buf.clear()
+            if ch.strip():
+                yield ("PUNC", ch)
+    if buf:
+        yield ("WORD", "".join(buf))
+
+
+source = "alpha + beta_2 * gamma"
+for tok in tokenize(source):
+    print(tok)</code></pre>
+      <p>토크나이저는 generator 응용의 전형적 사례이다. 텍스트 전체를 전처리해 토큰 list를 만드는 대신, 토큰을 하나씩 생산하여 다음 단계 파서로 전달할 수 있다.</p>
+      <p>이 구조는 메모리 효율뿐 아니라 파이프라인 composability를 높인다. tokenizer, filter, parser, evaluator를 모두 lazy하게 연결할 수 있다.</p>
+      <ul class="dense-list">
+        <li><strong>토큰 지연 생산</strong> : 필요한 시점에만 토큰을 생성한다.</li>
+        <li><strong>파이프라인 조합</strong> : tokenizer 뒤에 filter, parser, evaluator를 곧바로 연결할 수 있다.</li>
+        <li><strong>대규모 입력 대응</strong> : 전체 텍스트를 토큰 리스트로 보관할 필요가 없다.</li>
+      </ul>
+      <div class="formula">$$\text{text} \xrightarrow{\text{tokenizer}} \text{token stream} \xrightarrow{\text{parser}} \text{syntax object}$$</div>
+    </section>
+
+    <section class="slide" id="slide-31">
+      <span class="kicker">Part 30 · Async</span>
+      <h2><code>async for</code>와 async generator는 “비동기 반복 프로토콜”이다</h2>
+      <pre><code>class AsyncCounter:
+    def __init__(self, stop: int):
+        self.current = 0
+        self.stop = stop
+
+    def __aiter__(self):
+        return self
+
+    async def __anext__(self):
+        if self.current >= self.stop:
+            raise StopAsyncIteration
+        value = self.current
+        self.current += 1
+        return value</code></pre>
+      <p>동기 iterator가 즉시 다음 값을 줄 수 있는가를 묻는다면, 비동기 iterator는 다음 값을 비동기적으로 기다려 받을 수 있는가를 묻는다. 프로토콜 구조는 유사하지만 제어권 반환이 event loop와 결합된다는 점이 다르다.</p>
+      <p>토큰 스트리밍, websocket 메시지 처리, 센서 이벤트 수집 같은 현대 시스템에서는 async iteration이 직접적인 분석 대상이 된다.</p>
+      <ul class="dense-list">
+        <li><strong>프로토콜 확장</strong> : <code>__iter__/__next__</code>가 <code>__aiter__/__anext__</code>로 치환된다.</li>
+        <li><strong>event loop 결합</strong> : 다음 값 계산이 비동기 스케줄링과 함께 이뤄진다.</li>
+        <li><strong>현대 시스템성</strong> : 스트리밍과 네트워크 처리에서 핵심 반복 모델이다.</li>
+      </ul>
+      <div class="formula">$$\text{async iteration} = \text{awaitable next item} + \texttt{StopAsyncIteration}$$</div>
+    </section>
+
+    <section class="slide" id="slide-32">
+      <span class="kicker">Part 31 · Resources</span>
+      <h2>Generator와 자원 해제를 연결하는 가장 중요한 패턴</h2>
+      <pre><code>from contextlib import contextmanager
+
+@contextmanager
+def managed_file(path: str):
+    f = open(path, "w", encoding="utf-8")
+    try:
+        yield f
+    finally:
+        f.close()</code></pre>
+      <p>generator는 자원 사용 패턴과 잘 맞는다. 특히 setup → yield → cleanup 구조가 명확할 때 <code>@contextmanager</code>는 압축적인 표현을 제공한다. 다만 이 간결함 뒤에는 정확히 한 번만 <code>yield</code>해야 한다는 엄격한 계약이 존재한다.</p>
+      <p>따라서 generator 설계에서는 값 생산 시점만이 아니라 종료 시점과 정리 정책까지 함께 기술되어야 한다.</p>
+      <ul class="dense-list">
+        <li><strong>획득과 반납 결합</strong> : 자원 수명 주기를 하나의 lexical block에 묶는다.</li>
+        <li><strong>정확한 계약</strong> : contextmanager generator는 정확히 한 번만 <code>yield</code>해야 한다.</li>
+        <li><strong>정리 우선성</strong> : 생성보다 종료 시 정책이 더 중요해지는 대표 패턴이다.</li>
+      </ul>
+      <div class="formula">$$\text{managed generator} = \text{setup} \rightarrow \text{yield exactly once} \rightarrow \text{cleanup}$$</div>
+    </section>
+
+    <section class="slide" id="slide-33">
+      <span class="kicker">Part 32 · Performance</span>
+      <h2>Lazy evaluation이 항상 빠른 것은 아니다</h2>
+      <div class="two-metric">
+        <div class="metric">
+          Generator
+          <strong>메모리 효율</strong>
+          <p>불필요한 중간 결과를 만들지 않아 큰 데이터에서 유리하다.</p>
+        </div>
+        <div class="metric">
+          List
+          <strong>재사용과 locality</strong>
+          <p>이미 materialize된 데이터는 재반복, 인덱싱, 여러 소비자 공유에 유리하다.</p>
+        </div>
+      </div>
+      <p>generator는 Python 레벨 함수 호출과 프레임 재개 비용을 가진다. 따라서 원소 수가 작거나 결과를 여러 번 사용해야 한다면 list가 더 단순하고 빠를 수 있다. lazy evaluation은 유용한 전략이지만 보편적 정답은 아니다.</p>
+      <ul class="dense-list">
+        <li><strong>메모리 이점</strong> : 단일 패스 대규모 처리에서는 generator가 강하다.</li>
+        <li><strong>재사용 비용</strong> : 같은 결과를 반복 소비하면 eager materialization이 유리할 수 있다.</li>
+        <li><strong>판단 기준</strong> : 입력 크기, 소비 횟수, locality를 함께 봐야 한다.</li>
+      </ul>
+      <div class="formula">$$T_{\text{lazy}} = T_{\text{resume overhead}} + T_{\text{consumer passes}},\qquad T_{\text{eager}} = T_{\text{materialize once}} + T_{\text{replay}}$$</div>
+    </section>
+
+    <section class="slide" id="slide-34">
+      <span class="kicker">Part 33 · Anti-patterns</span>
+      <h2>Generator 섹션에서 반드시 피해야 할 안티패턴</h2>
+      <table>
+        <thead>
+          <tr><th>안티패턴</th><th>문제</th><th>대안</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>디버깅 중 무심코 <code>list(g)</code></td><td>generator 전체 소모</td><td><code>islice</code>로 일부만 확인</td></tr>
+          <tr><td>자원 정리 없는 무한 generator</td><td>파일/소켓 누수</td><td><code>try/finally</code>, <code>close()</code></td></tr>
+          <tr><td>여러 소비자가 같은 generator 공유</td><td>평가 순서 꼬임</td><td>새 generator 생성 또는 materialization</td></tr>
+        </tbody>
+      </table>
+      <p>실전에서 generator 버그는 성능 저하보다 특정 입력에서 일부 결과가 누락되는 형태로 나타나는 경우가 많다. 따라서 anti-pattern은 구현 습관이 아니라 의미론적 안전장치로 기억되어야 한다.</p>
+      <ul class="dense-list">
+        <li><strong>무심코 소모</strong> : 디버그 목적의 <code>list(g)</code>가 실제 입력을 소모해 버릴 수 있다.</li>
+        <li><strong>정리 누락</strong> : 무한 generator와 자원 결합은 누수로 이어질 수 있다.</li>
+        <li><strong>공유 위험</strong> : 하나의 generator를 여러 소비자가 건드리면 평가 순서가 의미론에 개입한다.</li>
+      </ul>
+      <div class="formula">$$\text{safety} = \text{controlled consumption} + \text{explicit cleanup} + \text{single-owner discipline}$$</div>
+    </section>
+
+    <section class="slide" id="slide-35">
+      <span class="kicker">Part 34 · Checkpoint</span>
+      <h2>여기까지의 중간 정리: iterator와 generator의 관계</h2>
+      <p class="lead">중간 정리의 결론은 다음과 같다. iterator는 Python 반복의 최소 계약이며, generator는 그 계약을 함수형으로 구현하는 대표적 전략이다.</p>
+      <p>다음 모듈의 핵심 질문은 lazy stream을 언제, 어떤 이유로, 어떤 비용을 지불하며 list로 materialize하는가에 있다. 이 질문은 성능과 의미론을 동시에 포함한다.</p>
+      <ul class="dense-list">
+        <li><strong>계약</strong> : iterator는 외부 관찰 가능한 최소 반복 규칙을 제공한다.</li>
+        <li><strong>전략</strong> : generator는 그 규칙을 실행 프레임으로 압축 구현한다.</li>
+        <li><strong>다음 단계</strong> : 이후 논의는 흐름을 언제 고정할지로 이동한다.</li>
+      </ul>
+      <div class="formula">$$\text{lazy stream} \xrightarrow{\text{materialize}} \text{eager replayable sequence}$$</div>
+      <div class="callout">list는 iterator의 경쟁자가 아니라 iterator/generator 파이프라인을 특정 시점에 고정하는 eager boundary이다.</div>
+    </section>
+
+    <section class="slide" id="slide-36">
+      <span class="kicker">Part 35 · Why List Now</span>
+      <h2>List를 generator 다음에 배치하는 이유</h2>
+      <p class="lead">list를 먼저 제시하면 반복이 저장 구조의 부속 기능처럼 보이기 쉽다. generator 다음에 배치하면 list는 결과를 고정하는 eager container라는 의미를 더 정확하게 드러낸다.</p>
+      <p>iterator/generator가 데이터 생산 메커니즘이라면, list는 그 생산 결과를 재사용 가능하고 인덱싱 가능한 형태로 materialize하는 객체이다. 따라서 list는 lazy flow와 eager access를 연결하는 경계 구조로 해석된다.</p>
+      <ul class="dense-list">
+        <li><strong>해석 순서</strong> : 생산 메커니즘을 먼저 이해해야 list가 boundary로 보인다.</li>
+        <li><strong>관찰 안정화</strong> : 흐르는 값을 재현 가능한 값 집합으로 고정한다.</li>
+        <li><strong>후속 연산 연결</strong> : 정렬, 인덱싱, 길이 계산이 이 경계 이후 자연스러워진다.</li>
+      </ul>
+      <div class="formula">$$\text{list} = \text{finite materialized sequence of references}$$</div>
+    </section>
+
+    <section class="slide" id="slide-37">
+      <span class="kicker">Part 36 · Eager Sequence</span>
+      <h2>List는 Python의 대표적인 eager sequence다</h2>
+      <table>
+        <thead>
+          <tr><th>성질</th><th>List</th><th>Generator</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>재사용성</td><td>높음</td><td>낮음</td></tr>
+          <tr><td>인덱싱</td><td>가능</td><td>불가</td></tr>
+          <tr><td>메모리 사용</td><td>전체 결과 저장</td><td>원소 단위</td></tr>
+          <tr><td>평가 시점</td><td>즉시</td><td>지연</td></tr>
+        </tbody>
+      </table>
+      <p>list는 일반적 컬렉션이라는 통상적 분류보다, eager evaluation의 결과를 안정적으로 저장하는 재사용 가능한 sequence로 해석되어야 한다. 여러 번 순회해야 하거나, 랜덤 접근이 필요하거나, 길이 계산과 정렬, 디버깅을 위해 상태를 고정해야 할 때 핵심 경계로 작동한다.</p>
+      <div class="formula">$$\text{list access} \approx O(1)\ \text{indexing},\qquad \text{list replay} = \text{deterministic multiple traversal}$$</div>
+      <ul class="dense-list">
+        <li><strong>재순회성</strong> : 동일한 결과를 여러 분석 단계에서 반복 소비할 수 있다.</li>
+        <li><strong>인덱싱 가능성</strong> : 순회 기반 객체와 달리 임의 위치 접근과 구간 추출이 가능하다.</li>
+        <li><strong>디버깅 안정성</strong> : 평가가 완료된 결과이므로 관찰 시점 변화가 결과 의미를 흔들지 않는다.</li>
+      </ul>
+    </section>
+
+    <section class="slide" id="slide-38">
+      <span class="kicker">Part 37 · Mutation Hazard</span>
+      <h2>List iterator와 list mutation의 미묘한 상호작용</h2>
+      <pre><code>xs = [1, 2, 3, 4]
+for x in xs:
+    print(x)
+    if x == 2:
+        xs.append(99)</code></pre>
+      <p>Python list iterator는 반복 중 구조 변경을 항상 즉시 차단하지 않는다. 따라서 코드는 실행되더라도 관찰되는 순서가 mutation schedule에 의존하게 되고, 이로 인해 의미론이 불안정해질 수 있다.</p>
+      <p>구조 변경이 필요한 경우에는 복사본을 순회하거나 새 결과 list를 구축하는 방식이 더 명확하다. 반복과 갱신을 동일한 컨테이너에서 동시에 수행하는 설계는 재현성과 검증 가능성을 약화시킨다.</p>
+      <ul class="dense-list">
+        <li><strong>의미론적 위험</strong> : 반복 순서와 컨테이너 크기가 실행 도중 함께 변하면 결과가 입력만으로 결정되지 않는다.</li>
+        <li><strong>안전한 대안</strong> : <code>xs[:]</code> 같은 snapshot을 순회하거나, 새 list를 축적하는 방식이 적합하다.</li>
+        <li><strong>설계 원칙</strong> : 순회 단계와 구조 변경 단계를 분리할수록 코드의 추론 가능성이 높아진다.</li>
+      </ul>
+      <div class="formula">$$\text{observed iteration} = f(\text{iterator state},\ \text{mutation schedule})$$</div>
+    </section>
+
+    <section class="slide" id="slide-39">
+      <span class="kicker">Part 38 · Comp vs Gen</span>
+      <h2>List comprehension과 generator expression의 연결</h2>
+      <pre><code>xs = [x * x for x in range(10)]
+ys = (x * x for x in range(10))</code></pre>
+      <p>표면 문법은 유사하지만 의미론은 다르다. list comprehension은 전체 결과를 즉시 계산하여 저장하고, generator expression은 소비 요청이 발생할 때마다 값을 산출한다. 따라서 차이는 메모리 사용량에 그치지 않고 부수효과 시점과 예외 노출 시점까지 바꾼다.</p>
+      <p>입력 데이터가 외부 상태에 의존한다면 generator expression은 소비 시점의 상태를 반영하고, list comprehension은 생성 시점의 상태를 고정한다. 이 차이는 재현성, 캐싱 전략, 디버깅 절차를 직접 규정한다.</p>
+      <ul class="dense-list">
+        <li><strong>시점 차이</strong> : 생성 시점과 소비 시점이 분리되면 관찰 결과가 달라질 수 있다.</li>
+        <li><strong>부수효과 차이</strong> : 함수 호출과 예외 발생 시점도 eager/lazy 여부에 따라 이동한다.</li>
+        <li><strong>문법 유사성 한계</strong> : 표면이 비슷해도 실행 의미론은 크게 다르다.</li>
+      </ul>
+      <div class="formula">$$[\phi(x)\ \text{for}\ x\in X] = \text{eager materialization},\qquad (\phi(x)\ \text{for}\ x\in X) = \text{lazy production}$$</div>
+    </section>
+
+    <section class="slide" id="slide-40">
+      <span class="kicker">Part 39 · Copy Model</span>
+      <h2>List slicing, shallow copy, aliasing</h2>
+      <pre><code>src = [[1, 2], [3, 4]]
+shallow = src[:]
+shallow[0].append(99)
+print(src)</code></pre>
+      <p>list가 materialized container라 하더라도 내부 원소의 복사 정책이 자동으로 안전해지는 것은 아니다. 슬라이싱이나 <code>list()</code>는 바깥 컨테이너만 새로 만들고, 내부 mutable 객체는 그대로 공유될 수 있다.</p>
+      <p>따라서 list를 곧바로 안전한 snapshot으로 해석해서는 안 된다. 깊은 복사가 필요한지, 불변 레코드를 사용해야 하는지, aliasing이 허용 가능한지까지 함께 검토해야 한다.</p>
+      <ul class="dense-list">
+        <li><strong>겉복사</strong> : 바깥 list만 새로 만들어지고 내부 객체는 공유될 수 있다.</li>
+        <li><strong>별칭 문제</strong> : 한쪽 수정이 다른 쪽 결과를 바꾸는 aliasing이 생긴다.</li>
+        <li><strong>모델 선택</strong> : deep copy, immutable record, tuple snapshot 중 적절한 전략을 골라야 한다.</li>
+      </ul>
+      <div class="formula">$$\mathrm{id}(\text{src}) \neq \mathrm{id}(\text{copy}),\qquad \mathrm{id}(\text{src}[i]) = \mathrm{id}(\text{copy}[i])\ \text{(shallow copy)}$$</div>
+    </section>
+
+    <section class="slide" id="slide-41">
+      <span class="kicker">Part 40 · Complexity</span>
+      <h2>List 메서드의 비용 모델을 알아야 올바른 연결이 가능하다</h2>
+      <table>
+        <thead>
+          <tr><th>연산</th><th>대략적 비용</th><th>설명</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>append</code></td><td>평균 O(1)</td><td>끝에 추가</td></tr>
+          <tr><td><code>pop()</code></td><td>평균 O(1)</td><td>끝에서 제거</td></tr>
+          <tr><td><code>insert(0, x)</code></td><td>O(n)</td><td>앞쪽 요소 이동 필요</td></tr>
+          <tr><td><code>pop(0)</code></td><td>O(n)</td><td>앞쪽 요소 제거 후 이동</td></tr>
+        </tbody>
+      </table>
+      <p>iterator/generator 파이프라인이 list에서 멈추는 순간, 후속 알고리즘의 비용 구조는 list의 연산 특성에 의해 결정된다. list는 범용성이 높지만, 앞쪽 삽입과 삭제가 많은 queue 패턴에는 구조적으로 부적합하다.</p>
+      <ul class="dense-list">
+        <li><strong>amortized append</strong> : 끝에 붙이는 연산은 평균적으로 매우 효율적이다.</li>
+        <li><strong>front shift cost</strong> : 앞쪽 삽입과 삭제는 다수 원소 이동을 유발한다.</li>
+        <li><strong>연결 설계</strong> : materialization 이후 어떤 연산이 우세한지에 따라 container 선택이 달라진다.</li>
+      </ul>
+      <div class="formula">$$T_{\texttt{append}}(n)=O(1)_{\text{amortized}},\qquad T_{\texttt{pop}(0)}(n)=O(n)$$</div>
+    </section>
+
+    <section class="slide" id="slide-42">
+      <span class="kicker">Part 41 · Alternatives</span>
+      <h2>List vs deque vs tuple: 연결 지점에 따라 달라지는 최적 선택</h2>
+      <div class="cols-3">
+        <div class="card">
+          <h3>List</h3>
+          <p>랜덤 접근, 정렬, 슬라이싱, 범용 연산 조합에 적합하다.</p>
+        </div>
+        <div class="card">
+          <h3>deque</h3>
+          <p>양쪽 끝 삽입과 삭제가 빈번한 흐름에서 안정적인 비용 구조를 제공한다.</p>
+        </div>
+        <div class="card">
+          <h3>tuple</h3>
+          <p>불변성과 해시 가능성이 필요한 snapshot 표현에 적합하다.</p>
+        </div>
+      </div>
+      <p>자료구조 선택은 선호가 아니라 연산 패턴의 함수로 결정되어야 한다. iterator/generator가 흐름을 만든 뒤, 어떤 container로 고정할지는 후속 연산의 비용과 계약이 결정한다.</p>
+      <ul class="dense-list">
+        <li><strong>random access</strong> : 정렬, 슬라이싱, 인덱싱이 핵심이면 list가 적합하다.</li>
+        <li><strong>queue discipline</strong> : 양끝 삽입과 삭제가 중요하면 deque가 유리하다.</li>
+        <li><strong>immutable snapshot</strong> : 해시 가능성과 값 의미론이 필요하면 tuple이 적합하다.</li>
+      </ul>
+      <div class="formula">$$\text{container choice} = \arg\min_{c \in \{\text{list},\text{deque},\text{tuple}\}} \text{cost}(\text{operation profile}, c)$$</div>
+    </section>
+
+    <section class="slide" id="slide-43">
+      <span class="kicker">Part 42 · Sorting</span>
+      <h2>List는 정렬과 ranking의 중심 컨테이너다</h2>
+      <pre><code>rows = [("a", 0.82), ("b", 0.91), ("c", 0.91)]
+rows.sort(key=lambda x: (-x[1], x[0]))
+print(rows)</code></pre>
+      <p>generator는 lazy stream을 잘 표현하지만, 정렬은 전체 데이터의 상대 순서를 비교해야 하므로 본질적으로 materialization을 요구한다. 따라서 정렬은 대표적인 eager boundary이다.</p>
+      <p>Python의 sort는 stable하다. 동일 키에 대한 상대 순서를 보존하므로 실험 ranking, tie-breaking, 다단계 정렬에서 재현성 확보에 중요하다.</p>
+      <ul class="dense-list">
+        <li><strong>전체 관찰 필요</strong> : 정렬은 모든 원소를 한 표면에 모아야 한다.</li>
+        <li><strong>stable sort</strong> : 동일 키의 기존 순서를 유지해 다단계 정렬이 가능하다.</li>
+        <li><strong>재현성</strong> : ranking과 실험 결과 정리에서 동일 입력의 순서를 안정화한다.</li>
+      </ul>
+      <div class="formula">$$k(a)=k(b)\ \land\ a \prec b \text{ in input} \Rightarrow a \prec b \text{ in stable-sorted output}$$</div>
+    </section>
+
+    <section class="slide" id="slide-44">
+      <span class="kicker">Part 43 · Materialization</span>
+      <h2><code>list(it)</code>는 단순 변환이 아니라 의미론적 경계선이다</h2>
+      <pre><code>it = (x * x for x in range(5))
+xs = list(it)
+print(xs)
+print(list(it))</code></pre>
+      <p><code>list(it)</code>는 iterator를 소비하고 그 결과를 고정한다. 즉, lazy world에서 eager world로 넘어가는 순간이다. 그 뒤에는 인덱싱, 재순회, 길이 확인이 가능해지지만, 그 대가로 메모리와 평가 비용을 한 번에 지불한다.</p>
+      <p><code>list()</code> 호출은 단순 변환이 아니라 materialization 선언으로 해석되어야 한다. 따라서 호출 시점은 의미론적 판단의 대상이 된다.</p>
+      <ul class="dense-list">
+        <li><strong>소모</strong> : 입력 iterator는 대부분 이 시점에서 종료된다.</li>
+        <li><strong>고정</strong> : 이후 결과는 외부 상태 변화와 무관하게 동일하게 재사용될 수 있다.</li>
+        <li><strong>대가</strong> : 메모리 사용량과 초기 평가 시간이 증가한다.</li>
+      </ul>
+      <div class="formula">$$\texttt{list}(it) = \text{consume}(it) + \text{freeze observable output}$$</div>
+    </section>
+
+    <section class="slide" id="slide-45">
+      <span class="kicker">Part 44 · Live Lab</span>
+      <h2>Lazy pipeline을 끝에서 list로 고정하기</h2>
+      <pre class="live-code"><code>def numbers():
+    for x in range(20):
+        yield x
+
+
+pipeline = (
+    x * x
+    for x in numbers()
+    if x % 2 == 0
+)
+
+print(list(pipeline))</code></pre>
+      <p>이 예제는 생성, 필터링, 변환이 모두 lazy하게 연결되고 마지막 <code>list()</code>가 결과를 고정하는 전형적 구조를 보인다. 데이터 처리 파이프라인에서 eager boundary가 어디에 놓이는지 관찰하기에 적합하다.</p>
+      <p>결과를 한 번만 소비할 예정이라면 list는 생략 가능하다. 반대로 결과를 여러 번 사용하거나 정렬, 길이 측정, 디버깅, 테스트가 필요하다면 materialization이 설계상 합리적 선택이 된다.</p>
+      <ul class="dense-list">
+        <li><strong>lazy chain</strong> : source, filter, map 단계는 소비 전까지 실제 계산을 지연시킨다.</li>
+        <li><strong>boundary placement</strong> : 마지막 <code>list()</code> 위치가 설계상 중요한 결정이다.</li>
+        <li><strong>재사용성 전환</strong> : materialization 이후에는 동일 결과를 여러 연산이 공유할 수 있다.</li>
+      </ul>
+      <div class="formula">$$\text{result} = \texttt{list}\big(\text{map} \circ \text{filter} \circ \text{source}\big)$$</div>
+    </section>
+
+    <section class="slide" id="slide-46">
+      <span class="kicker">Part 45 · Replay</span>
+      <h2>List는 replay와 caching을 위한 효과적인 경계가 된다</h2>
+      <p class="lead">iterator와 generator는 흐름 표현에 적합하지만, 이미 소비한 값을 재현하기 어렵다. list는 이 문제를 해결하는 가장 단순한 replay boundary로 기능한다.</p>
+      <p>expensive generator를 한 번 실행해 list로 저장하면 여러 분석 단계가 동일한 결과를 재사용할 수 있다. 다만 입력 규모가 커질수록 memory pressure가 증가하고 streaming의 장점은 감소한다.</p>
+      <p>따라서 list는 단순 저장소라기보다, 재사용성·디버깅 가능성·재현성을 위해 의도적으로 도입하는 캐시 경계로 해석되어야 한다.</p>
+      <ul class="dense-list">
+        <li><strong>replay</strong> : 이미 지나간 값을 다시 관찰할 수 있게 만든다.</li>
+        <li><strong>cache boundary</strong> : 비싼 전처리 결과를 여러 분석기가 공유하는 지점이 된다.</li>
+        <li><strong>trade-off</strong> : 메모리 사용 증가와 스트리밍 장점 상실을 함께 감수해야 한다.</li>
+      </ul>
+      <div class="formula">$$\text{replayability} = \text{materialized snapshot of a lazy source}$$</div>
+    </section>
+
+    <section class="slide" id="slide-47">
+      <span class="kicker">Part 46 · Testing Boundary</span>
+      <h2>List는 테스트와 검증에도 유용한 중간 표현이다</h2>
+      <pre><code>def pipeline(xs):
+    return (x * 2 for x in xs if x % 2 == 1)
+
+assert list(pipeline([1, 2, 3, 4])) == [2, 6]</code></pre>
+      <p>테스트는 lazy pipeline을 eager 결과로 변환해 검증하는 경우가 많다. 이렇게 하면 관찰 가능한 출력이 명시적으로 고정되며, iterator/generator의 일회성 소비 문제를 피할 수 있다.</p>
+      <p>이때 list는 단순 저장소가 아니라 관찰 가능한 표현(observable representation)으로 기능한다. 즉, 의미론적 계약을 테스트 가능한 값의 형태로 드러내는 중간 표면이 된다.</p>
+      <ul class="dense-list">
+        <li><strong>oracle 고정</strong> : 비교 대상이 값의 리스트로 명확해진다.</li>
+        <li><strong>일회성 회피</strong> : 같은 pipeline을 여러 assertion에서 다시 돌리지 않아도 된다.</li>
+        <li><strong>계약 표면화</strong> : 산출 결과를 가장 단순한 값 형태로 드러낸다.</li>
+      </ul>
+      <div class="formula">$$\text{test oracle} = \texttt{list}(\text{observable output})$$</div>
+    </section>
+
+    <section class="slide" id="slide-48">
+      <span class="kicker">Part 47 · Why Class Last</span>
+      <h2>Class는 앞선 세 층을 객체 모델로 통합한다</h2>
+      <p class="lead">iterator는 프로토콜, generator는 구현 전략, list는 materialization boundary를 나타낸다. class는 이 세 층을 안정적인 인터페이스와 불변식으로 통합하는 설계 장치이다.</p>
+      <p>객체가 재순회 가능한 iterable인지, 내부적으로 generator를 사용하는지, 결과를 list로 캐시하는지, 속성 접근에 검증을 둘 것인지 같은 정책은 class 수준에서 조직된다. 따라서 class는 단순 문법이 아니라 프로토콜과 상태를 설계 가능한 단위로 묶는 수단이다.</p>
+      <div class="formula">$$\text{Class design} = \text{state} + \text{protocol} + \text{invariant} + \text{extension hooks}$$</div>
+      <ul class="dense-list">
+        <li><strong>프로토콜의 외피</strong> : class는 내부 구현이 iterator인지 generator인지와 무관하게 외부 인터페이스를 안정화한다.</li>
+        <li><strong>정책 집중</strong> : validation, caching, replay 여부, 메서드 조합 같은 결정을 한 곳에 모은다.</li>
+        <li><strong>시스템 확장성</strong> : descriptor, subclass hook, metaclass 같은 훅은 모두 class가 제공하는 확장 지점이다.</li>
+      </ul>
+    </section>
+
+    <section class="slide" id="slide-49">
+      <span class="kicker">Part 48 · Class Statement</span>
+      <h2><code>class</code> 문은 선언처럼 보이지만 실행문이다</h2>
+      <pre><code>events = []
+
+class Demo:
+    events.append("class body executed")
+    tag = "demo"
+
+    def run(self):
+        return self.tag
+
+print(events)</code></pre>
+      <p>클래스 본문은 정적 설명서가 아니라 실행 블록이다. 함수 정의, 상수 바인딩, 데코레이터 적용, 부수효과가 모두 이 시점에 일어난다. 그 결과 namespace가 만들어지고 마지막에 metaclass가 클래스 객체를 생성한다.</p>
+      <p>이 구조는 <code>__prepare__</code>, metaclass, <code>__init_subclass__</code> 같은 정의 시점 훅이 가능한 이유를 설명한다.</p>
+      <ul class="dense-list">
+        <li><strong>namespace 준비</strong> : metaclass가 <code>__prepare__</code>를 제공하면 클래스 본문용 매핑 자체를 바꿀 수 있습니다.</li>
+        <li><strong>본문 실행</strong> : 데코레이터, 함수 정의, 클래스 변수 계산이 모두 이 단계에서 일어납니다.</li>
+        <li><strong>클래스 객체 생성</strong> : 마지막에는 metaclass가 실제 type object를 만들어 냅니다.</li>
+      </ul>
+      <div class="formula">$$\text{class statement} \Rightarrow \text{namespace preparation} \rightarrow \text{body execution} \rightarrow \text{type construction}$$</div>
+    </section>
+
+    <section class="slide" id="slide-50">
+      <span class="kicker">Part 49 · Construction</span>
+      <h2><code>__new__</code>, <code>__init__</code>, <code>@classmethod</code>를 구분해서 쓰기</h2>
+      <div class="cols-2">
+        <div class="card">
+          <h3><code>__new__</code></h3>
+          <p>객체를 실제로 생성한다. 불변 타입 서브클래싱, 캐싱, singleton 류 패턴에서 중요하다.</p>
+        </div>
+        <div class="card">
+          <h3><code>__init__</code></h3>
+          <p>이미 생성된 객체를 초기화한다. 대부분의 사용자 클래스는 이 단계만 구현한다.</p>
+        </div>
+      </div>
+      <pre><code>class Record:
+    def __init__(self, step: int, loss: float):
+        self.step = step
+        self.loss = loss
+
+    @classmethod
+    def from_row(cls, row: str):
+        step, loss = row.split(",")
+        return cls(int(step), float(loss))</code></pre>
+      <p><code>@classmethod</code>는 대체 생성자 역할을 수행한다. 외부 입력 형식과 내부 객체 구조를 분리하는 데 적합하다.</p>
+      <ul class="dense-list">
+        <li><strong><code>__new__</code></strong> : immutable subtype이나 instance interning처럼 생성 자체를 제어할 때 필요하다.</li>
+        <li><strong><code>__init__</code></strong> : 이미 생성된 객체가 올바른 상태로 들어가도록 보장하는 자리입니다.</li>
+        <li><strong><code>@classmethod</code></strong> : 파싱, 복원, 외부 포맷 적응처럼 입력 경로가 여러 개인 클래스에 적합하다.</li>
+      </ul>
+      <div class="formula">$$obj = cls.\_\_new\_\_(cls,\dots),\qquad cls.\_\_init\_\_(obj,\dots)$$</div>
+    </section>
+
+    <section class="slide" id="slide-51">
+      <span class="kicker">Part 50 · Dataclass</span>
+      <h2><code>dataclass</code>는 레코드 설계의 기본 도구다</h2>
+      <pre><code>from dataclasses import dataclass, field, InitVar, KW_ONLY
+
+@dataclass(frozen=True, order=True, slots=True)
+class Sample:
+    step: int
+    loss: float
+    _: KW_ONLY
+    raw_note: InitVar[str] = ""
+    note: str = field(init=False)
+
+    def __post_init__(self, raw_note: str):
+        object.__setattr__(self, "note", raw_note.strip())</code></pre>
+      <p><code>dataclass</code>는 보일러플레이트 제거 도구를 넘어 값 객체 설계 장치로 해석된다. 불변성, 비교 가능성, 메모리 레이아웃, 초기화 정책을 동시에 선언할 수 있다.</p>
+      <p>실험 메타데이터, 로그 레코드, AST node, 캐시 키 같은 구조에서는 <code>frozen</code>과 <code>slots</code>가 특히 유효하다.</p>
+      <ul class="dense-list">
+        <li><strong><code>frozen=True</code></strong> : 값 객체처럼 안전한 사용과 안정적인 hash 계약을 제공한다.</li>
+        <li><strong><code>order=True</code></strong> : 정렬과 우선순위 기반 알고리즘으로 직접 연결된다.</li>
+        <li><strong><code>InitVar</code> / <code>__post_init__</code></strong> : 외부 입력 표현과 내부 저장 표현의 분리를 가능하게 한다.</li>
+      </ul>
+      <div class="formula">$$\text{record object} = \text{field set} + \text{comparison contract} + \text{initialization policy}$$</div>
+    </section>
+
+    <section class="slide" id="slide-52">
+      <span class="kicker">Part 51 · Live Lab</span>
+      <h2>내부적으로 generator를 쓰는 iterable class</h2>
+      <pre class="live-code"><code>class WindowedReadings:
+    def __init__(self, readings, window_size: int):
+        if window_size &lt;= 0:
+            raise ValueError("window_size must be positive")
+        self.readings = list(readings)
+        self.window_size = window_size
+
+    def __repr__(self):
+        return f"WindowedReadings(n={len(self.readings)}, window={self.window_size})"
+
+    def __iter__(self):
+        for i in range(0, len(self.readings) - self.window_size + 1):
+            yield self.readings[i:i + self.window_size]
+
+
+wr = WindowedReadings([3, 5, 8, 13, 21], 3)
+print(wr)
+print(list(wr))
+print(list(wr))</code></pre>
+      <p>이 클래스는 외부 계약과 내부 구현 전략을 분리하는 전형적 패턴을 나타낸다. 외부에서는 재순회 가능한 iterable class로 관찰되고, 내부에서는 generator가 순회 상태를 간결하게 관리한다.</p>
+      <ul class="dense-list">
+        <li><strong>외부 계약</strong> : 사용자는 재순회 가능한 iterable interface만 관찰한다.</li>
+        <li><strong>내부 전략</strong> : 실제 순회 상태는 generator frame이 유지한다.</li>
+        <li><strong>설계 포인트</strong> : class는 API를, generator는 순회 메커니즘을 담당한다.</li>
+      </ul>
+      <div class="formula">$$\text{public iterable} = \text{class interface} + \text{generator-backed traversal}$$</div>
+    </section>
+
+    <section class="slide" id="slide-53">
+      <span class="kicker">Part 52 · Descriptor</span>
+      <h2>Descriptor는 클래스 모델의 핵심 축이다</h2>
+      <pre><code>class Descriptor:
+    def __get__(self, obj, objtype=None): ...
+    def __set__(self, obj, value): ...
+    def __delete__(self, obj): ...</code></pre>
+      <p>Python의 메서드 바인딩, <code>property</code>, <code>classmethod</code>, <code>staticmethod</code>는 모두 descriptor 메커니즘 위에 놓여 있다. 따라서 descriptor는 class 모델의 주변 기능이 아니라 속성 의미론의 핵심 축에 해당한다.</p>
+      <p>descriptor의 본질은 속성 접근을 객체화하는 데 있다. 값 조회만 수행하는 대신, 읽기와 쓰기, 삭제라는 행위 자체를 정책 지점으로 바꾸어 검증, 계산, 바인딩, 캐싱을 삽입할 수 있다.</p>
+      <ul class="dense-list">
+        <li><strong>data descriptor</strong> : <code>__set__</code> 또는 <code>__delete__</code>를 포함하여 instance dictionary보다 높은 우선순위를 갖는다.</li>
+        <li><strong>non-data descriptor</strong> : 함수 객체처럼 <code>__get__</code>만 구현하여 바인딩 의미론을 제공한다.</li>
+        <li><strong>핵심 가치</strong> : 속성 접근을 단순 조회가 아니라 정책 적용 지점으로 전환한다.</li>
+      </ul>
+      <div class="formula">$$\text{attribute access} = \text{lookup order} + \text{binding policy} + \text{side-effect control}$$</div>
+    </section>
+
+    <section class="slide" id="slide-54">
+      <span class="kicker">Part 53 · Common Descriptors</span>
+      <h2><code>property</code>, <code>classmethod</code>, <code>staticmethod</code>를 descriptor 관점에서 보기</h2>
+      <table>
+        <thead>
+          <tr><th>도구</th><th>역할</th><th>어떤 문제를 푸는가</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>property</code></td><td>필드처럼 보이는 계산/검증 API</td><td>캡슐화와 API 안정성</td></tr>
+          <tr><td><code>@classmethod</code></td><td>클래스에 바인딩되는 메서드</td><td>대체 생성자, 타입별 정책</td></tr>
+          <tr><td><code>@staticmethod</code></td><td>바인딩 없는 유틸리티 함수</td><td>네임스페이스 조직화</td></tr>
+        </tbody>
+      </table>
+      <p><code>property</code>는 현재는 단순 필드처럼 보이더라도 이후 계산과 검증, 캐시 갱신 로직을 무리 없이 삽입할 수 있게 만든다. 이 특성 때문에 라이브러리 설계에서 API 안정성을 유지하는 핵심 수단으로 사용된다.</p>
+      <ul class="dense-list">
+        <li><strong><code>property</code></strong> : 외부 문법을 유지한 채 내부 저장 방식과 검증 정책을 교체할 수 있다.</li>
+        <li><strong><code>@classmethod</code></strong> : 하위 클래스까지 포함하는 다형적 생성자 경로를 제공한다.</li>
+        <li><strong><code>@staticmethod</code></strong> : 상태 바인딩이 불필요한 계산을 클래스 네임스페이스 안에 조직한다.</li>
+      </ul>
+      <div class="formula">$$\text{descriptor wrapper} = \text{same attribute syntax} + \text{different binding semantics}$$</div>
+    </section>
+
+    <section class="slide" id="slide-55">
+      <span class="kicker">Part 54 · Live Lab</span>
+      <h2><code>__set_name__</code>을 활용한 검증 descriptor</h2>
+      <pre class="live-code"><code>class PositiveFloat:
+    def __set_name__(self, owner, name):
+        self.private_name = "_" + name
+
+    def __get__(self, obj, objtype=None):
+        if obj is None:
+            return self
+        return getattr(obj, self.private_name)
+
+    def __set__(self, obj, value):
+        value = float(value)
+        if value &lt;= 0:
+            raise ValueError("value must be positive")
+        setattr(obj, self.private_name, value)
+
+
+class OptimConfig:
+    lr = PositiveFloat()
+
+    def __init__(self, lr):
+        self.lr = lr
+
+
+cfg = OptimConfig(0.01)
+print(cfg.lr)
+cfg.lr = 0.1
+print(cfg.lr)</code></pre>
+      <p>이 패턴은 ORM field, 설정 시스템, 실험 파라미터 검증기, 데이터 모델 필드 관리 등으로 자연스럽게 확장된다. descriptor는 필드 수준 정책을 재사용 가능한 단위로 승격시키는 도구다.</p>
+      <ul class="dense-list">
+        <li><strong><code>__set_name__</code></strong> : 필드 이름을 자동 수집하여 private storage와 결합한다.</li>
+        <li><strong>재사용성</strong> : 동일한 검증 로직을 여러 클래스 필드에 반복 없이 적용할 수 있다.</li>
+        <li><strong>실무 연결</strong> : ORM, serializer, config schema는 이 메커니즘을 핵심적으로 활용한다.</li>
+      </ul>
+      <div class="formula">$$\text{validated field} = \text{public name} + \text{private storage} + \text{write-time constraint}$$</div>
+    </section>
+
+    <section class="slide" id="slide-56">
+      <span class="kicker">Part 55 · Attribute Lookup</span>
+      <h2><code>__getattribute__</code>, <code>__getattr__</code>, instance dict, descriptor의 순서</h2>
+      <p class="lead">속성 접근은 단순 해시 조회가 아니라 다층적 규칙에 따라 해석되는 연산이다. 이 lookup order를 이해해야 디버깅과 메타프로그래밍, 프록시 객체 설계가 가능해진다.</p>
+      <table>
+        <thead>
+          <tr><th>대략적 순서</th><th>설명</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>data descriptor</td><td><code>property</code> 같은 강한 우선순위의 descriptor</td></tr>
+          <tr><td>instance <code>__dict__</code></td><td>인스턴스에 직접 저장된 속성</td></tr>
+          <tr><td>non-data descriptor / class attribute</td><td>함수, 일반 클래스 속성</td></tr>
+          <tr><td><code>__getattr__</code></td><td>앞선 단계에서 못 찾았을 때만 호출</td></tr>
+        </tbody>
+      </table>
+      <p>이 순서를 이해하면 인스턴스에 동일한 이름이 존재해도 왜 <code>property</code>가 우선하는지, 메서드 접근 시 왜 bound method가 생성되는지, 왜 <code>__getattr__</code>가 마지막 단계에서만 작동하는지를 설명할 수 있다.</p>
+      <ul class="dense-list">
+        <li><strong><code>__getattribute__</code></strong> : 모든 조회의 공통 진입점이므로 proxy, tracing, sandbox 구현의 핵심이다.</li>
+        <li><strong><code>__getattr__</code></strong> : 선행 단계 실패 후에만 호출되므로 lazy fallback과 동적 위임에 적합하다.</li>
+        <li><strong>디버깅 포인트</strong> : 속성 가시성 문제의 상당수는 lookup order 추적으로 환원된다.</li>
+      </ul>
+      <div class="formula">$$\text{data descriptor} \succ \text{instance dict} \succ \text{non-data descriptor/class attr} \succ \texttt{__getattr__}$$</div>
+    </section>
+
+    <section class="slide" id="slide-57">
+      <span class="kicker">Part 56 · Bound Methods</span>
+      <h2>함수는 클래스에 놓이는 순간 non-data descriptor가 된다</h2>
+      <pre><code>class A:
+    def f(self, x):
+        return x + 1
+
+a = A()
+print(A.f)   # function
+print(a.f)   # bound method</code></pre>
+      <p><code>self</code>는 문법적으로 자동 삽입되는 마법 인자가 아니라, 함수 객체가 descriptor로 동작하면서 인스턴스 접근 시 bound method를 생성한 결과로 이해되어야 한다. 즉, 메서드 바인딩은 문법 설탕이 아니라 객체 프로토콜의 산물이다.</p>
+      <p>이 관점은 monkey patching, dynamic dispatch, decorator, method wrapping을 정밀하게 이해하는 출발점이 된다.</p>
+      <ul class="dense-list">
+        <li><strong>클래스 접근</strong> : 원본 함수 객체가 드러난다.</li>
+        <li><strong>인스턴스 접근</strong> : 첫 인자가 바인딩된 method wrapper가 생성된다.</li>
+        <li><strong>의미</strong> : 메서드는 특별 문법이 아니라 descriptor가 만든 관찰 결과다.</li>
+      </ul>
+      <div class="formula">$$a.f \equiv A.f.\_\_get\_\_(a, A)$$</div>
+    </section>
+
+    <section class="slide" id="slide-58">
+      <span class="kicker">Part 57 · Abstraction</span>
+      <h2>ABC와 Protocol: 런타임 계약과 정적 구조 계약</h2>
+      <pre><code>from collections.abc import Iterable
+from typing import Protocol, runtime_checkable
+
+@runtime_checkable
+class SupportsPeek(Protocol):
+    def peek(self) -> int: ...</code></pre>
+      <p>ABC는 런타임에서 명시적 상속 관계를 통해 계약을 강제하는 도구이고, Protocol은 구조적 서브타이핑을 통해 필요한 메서드 집합만으로 계약을 표현하는 정적 타입 친화적 장치다.</p>
+      <p>현대 Python 설계에서는 두 층을 분리해서 이해해야 한다. 런타임 제약과 프레임워크 통제가 필요할 때는 ABC가, 정적 분석과 유연한 duck typing을 결합할 때는 Protocol이 적합하다.</p>
+      <ul class="dense-list">
+        <li><strong>ABC</strong> : 프레임워크 내부에서 하위 클래스 계약을 명시적으로 강제하는 데 적합하다.</li>
+        <li><strong>Protocol</strong> : 상속 구조와 무관하게 필요한 행동 집합을 문서화한다.</li>
+        <li><strong>실무 해석</strong> : duck typing의 유연성을 유지하면서 협업용 계약을 강화한다.</li>
+      </ul>
+      <div class="formula">$$\text{ABC} = \text{nominal contract},\qquad \text{Protocol} = \text{structural contract}$$</div>
+    </section>
+
+    <section class="slide" id="slide-59">
+      <span class="kicker">Part 58 · Generics</span>
+      <h2>타입 시스템과 <code>__class_getitem__</code>, generic class</h2>
+      <pre><code>from typing import Generic, TypeVar
+
+T = TypeVar("T")
+
+class Box(Generic[T]):
+    def __init__(self, value: T):
+        self.value = value</code></pre>
+      <p>고급 Python에서 class는 런타임 객체이면서 동시에 타입 시스템의 표면이기도 하다. <code>Box[int]</code> 같은 표현은 단순 표기법이 아니라 generic contract를 문서화하고 정적 분석 도구가 이해할 수 있게 만드는 장치다.</p>
+      <p><code>__class_getitem__</code>를 직접 구현할 수도 있지만, 대부분의 상황에서는 <code>typing.Generic</code> 기반 설계로 충분하다. 핵심은 타입 힌트가 구현 보조물이 아니라 설계 문서 역할을 수행한다는 점이다.</p>
+      <ul class="dense-list">
+        <li><strong>generic class</strong> : 동일한 구조를 여러 타입 인자에 대해 안전하게 재사용하게 한다.</li>
+        <li><strong><code>__class_getitem__</code></strong> : <code>Cls[T]</code> 문법을 런타임에서도 해석하는 훅이다.</li>
+        <li><strong>설계 가치</strong> : 타입 힌트는 검사기 입력이면서 동시에 협업용 API 문서다.</li>
+      </ul>
+      <div class="formula">$$\text{Generic class} = \text{shape invariant} + \text{type parameterization}$$</div>
+    </section>
+
+    <section class="slide" id="slide-60">
+      <span class="kicker">Part 59 · MRO</span>
+      <h2>다중 상속은 결국 C3 linearization 문제다</h2>
+      <pre><code>class A: ...
+class B(A): ...
+class C(A): ...
+class D(B, C): ...
+
+print(D.__mro__)</code></pre>
+      <p>다중 상속이 어려운 이유는 부모 수가 많기 때문이 아니라, 탐색 순서를 일관되게 정해야 하기 때문이다. Python은 C3 linearization을 사용해 지역 우선 순서와 단조성을 동시에 보존한다.</p>
+      <p>descriptor lookup, 메서드 호출, <code>super()</code> 협력은 모두 MRO에 의존한다. 따라서 다중 상속은 문법 문제가 아니라 선형화 문제로 이해되어야 한다.</p>
+      <ul class="dense-list">
+        <li><strong>local precedence</strong> : 자식이 명시한 부모 순서를 가능한 한 보존한다.</li>
+        <li><strong>monotonicity</strong> : 상위 클래스의 우선순위 관계가 하위 클래스에서 뒤집히지 않도록 한다.</li>
+        <li><strong>실무 의미</strong> : mixin 체인과 <code>super()</code> 협력이 유지되도록 만드는 기반이다.</li>
+      </ul>
+      <div class="formula">$$MRO(C) = [C] + \mathrm{merge}(MRO(B_1), \ldots, MRO(B_n), [B_1,\ldots,B_n])$$</div>
+    </section>
+
+    <section class="slide" id="slide-61">
+      <span class="kicker">Part 60 · super()</span>
+      <h2>협력적 다중 상속은 모두가 <code>super()</code>를 지킬 때만 성립한다</h2>
+      <pre><code>class LoggingMixin:
+    def process(self, x):
+        print("log", x)
+        return super().process(x)
+
+class NormalizeMixin:
+    def process(self, x):
+        x = x.strip().lower()
+        return super().process(x)
+
+class BaseProcessor:
+    def process(self, x):
+        return x</code></pre>
+      <p><code>super()</code>는 부모 클래스 직접 호출 문법이 아니라, 현재 MRO에서 다음 후보를 호출하는 협력 장치다. 따라서 mixin과 다중 상속이 존재하는 설계에서는 모든 참여자가 동일한 규약을 따라야 한다.</p>
+      <p>하나의 클래스라도 특정 부모를 직접 호출하면 선형화 계약이 깨질 수 있다. 다중 상속 코드가 취약해지는 이유는 다수 상속 자체가 아니라 협력 규약의 붕괴에 있다.</p>
+      <ul class="dense-list">
+        <li><strong>직접 부모 호출 금지</strong> : 특정 부모명을 고정하면 다른 mixin이 체인에서 누락될 수 있다.</li>
+        <li><strong>시그니처 협력</strong> : 여러 클래스가 동일한 호출 체인을 공유하므로 인자 계약도 협력적으로 설계되어야 한다.</li>
+        <li><strong>정확한 해석</strong> : <code>super()</code>는 부모가 아니라 현재 MRO의 다음 후보를 의미한다.</li>
+      </ul>
+      <div class="formula">$$\texttt{super()} = \text{next dispatch target in } MRO(\text{current class}, \text{instance})$$</div>
+    </section>
+
+    <section class="slide" id="slide-62">
+      <span class="kicker">Part 61 · Pattern Matching</span>
+      <h2>Class pattern matching은 구조적 분해 도구다</h2>
+      <pre><code>from dataclasses import dataclass
+
+@dataclass
+class Token:
+    kind: str
+    value: str
+
+def classify(tok: Token) -> str:
+    match tok:
+        case Token("INT", v):
+            return f"integer:{v}"
+        case Token("ID", v):
+            return f"identifier:{v}"
+        case _:
+            return "other"</code></pre>
+      <p>pattern matching은 class를 단순 객체가 아니라 분해 가능한 구조로 취급한다. AST 처리, 파서, 이벤트 분기 로직에서는 복잡한 if/elif 체인을 선언적 분해 규칙으로 치환할 수 있다.</p>
+      <p>다만 구조가 명확하지 않은 문제에 과도하게 적용하면 코드가 기호적으로 과밀해질 수 있다. 따라서 구조적 분해가 의미론적으로 분명한 경우에 사용하는 것이 적절하다.</p>
+      <ul class="dense-list">
+        <li><strong>분기 가독성</strong> : 토큰 종류나 AST 노드 타입에 따른 분기를 선언적으로 기술한다.</li>
+        <li><strong>데이터 모델 연결</strong> : dataclass나 tuple-like object와 특히 잘 결합된다.</li>
+        <li><strong>주의점</strong> : 미세한 제어 로직까지 pattern으로 밀어 넣으면 가독성이 저하된다.</li>
+      </ul>
+      <div class="formula">$$\text{class match} = \text{constructor tag} + \text{field decomposition} + \text{optional guard}$$</div>
+    </section>
+
+    <section class="slide" id="slide-63">
+      <span class="kicker">Part 62 · Subclass Hooks</span>
+      <h2><code>__init_subclass__</code>는 metaclass보다 가벼운 확장점이다</h2>
+      <pre><code>class PluginBase:
+    registry = {}
+
+    def __init_subclass__(cls, **kwargs):
+        super().__init_subclass__(**kwargs)
+        if cls.__name__ != "PluginBase":
+            PluginBase.registry[cls.__name__] = cls</code></pre>
+      <p><code>__init_subclass__</code>는 하위 클래스 정의가 완료될 때마다 호출된다. 자동 등록, 정책 검사, 공통 옵션 주입 같은 작업을 metaclass 없이 처리할 수 있으므로 실용적 확장점으로 기능한다.</p>
+      <p>클래스 정의 시점에 정책을 적용하고 싶다면 우선 이 훅으로 충분한지 평가하는 것이 바람직하다. metaclass는 더 강력하지만 범위와 침투성이 훨씬 크다.</p>
+      <ul class="dense-list">
+        <li><strong>plugin registry</strong> : 전략 객체 자동 등록 패턴에 적합하다.</li>
+        <li><strong>정의 시점 검증</strong> : 하위 클래스의 필수 속성과 메서드 존재를 즉시 검사할 수 있다.</li>
+        <li><strong>경량 훅</strong> : metaclass보다 적용 범위가 좁고 유지보수 부담이 낮다.</li>
+      </ul>
+      <div class="formula">$$\text{subclass registration} = \text{class definition event} \rightarrow \text{policy hook}$$</div>
+    </section>
+
+    <section class="slide" id="slide-64">
+      <span class="kicker">Part 63 · Metaclass</span>
+      <h2>Metaclass는 “클래스를 만드는 클래스”라는 설명만으로는 부족하다</h2>
+      <pre><code>class RegistryMeta(type):
+    registry = {}
+
+    def __new__(mcls, name, bases, ns):
+        cls = super().__new__(mcls, name, bases, ns)
+        if name != "Plugin":
+            mcls.registry[name] = cls
+        return cls</code></pre>
+      <p>metaclass의 핵심 의미는 클래스 정의 시점의 파이프라인에 개입할 수 있다는 데 있다. namespace 변경, 클래스 검증, 자동 등록, 문법 수준 DSL 구축이 모두 이 층에서 가능하다.</p>
+      <p>그러나 그만큼 읽기 난도가 높아지고 도구 친화성도 저하될 수 있다. descriptor, decorator, <code>__init_subclass__</code>로 해결 가능한 문제라면 metaclass 사용은 보류하는 편이 타당하다.</p>
+      <ul class="dense-list">
+        <li><strong>정의 시점 개입</strong> : 클래스 생성 순간에 규약을 강제한다.</li>
+        <li><strong>DSL 가능성</strong> : ORM, serializer, config schema 같은 도메인 언어가 이 수준 훅을 활용한다.</li>
+        <li><strong>비용</strong> : 강력하지만 팀 전체의 추론 난도를 높이므로 마지막 수단에 가깝다.</li>
+      </ul>
+      <div class="formula">$$\text{metaclass power} = \text{namespace control} + \text{class construction control}$$</div>
+    </section>
+
+    <section class="slide" id="slide-65">
+      <span class="kicker">Part 64 · Equality & Hash</span>
+      <h2><code>__eq__</code>, <code>__hash__</code>, 불변성 계약은 객체 모델의 안전장치다</h2>
+      <pre><code>from dataclasses import dataclass
+
+@dataclass(frozen=True)
+class Key:
+    run_id: str
+    seed: int
+
+
+scores = {Key("exp-1", 42): 0.91}
+print(scores[Key("exp-1", 42)])</code></pre>
+      <p>객체를 dict key나 set 원소로 사용하려면 동등성과 해시가 일관적이어야 한다. 이 계약은 클래스 설계의 안전장치이며, 캐시, memoization, 결과 조회, 중복 제거 같은 고급 기능의 기반을 이룬다.</p>
+      <ul class="dense-list">
+        <li><strong>핵심 법칙</strong> : <code>a == b</code>이면 반드시 <code>hash(a) == hash(b)</code>가 성립해야 한다.</li>
+        <li><strong>불변성 요구</strong> : hash 참여 필드가 바뀌면 dict/set 내부 인덱싱이 붕괴할 수 있다.</li>
+        <li><strong>실무 권장</strong> : 직접 <code>__hash__</code>를 작성하기보다 <code>frozen dataclass</code>를 우선 고려하는 편이 안전하다.</li>
+      </ul>
+      <div class="formula">$$a = b \Rightarrow h(a) = h(b),\qquad \text{mutable hash fields} \Rightarrow \text{index instability}$$</div>
+      <div class="callout warn">박사 수준 연구 코드에서 설정 객체를 mutable한 채 key로 사용하는 설계는 매우 위험하다. 캐시 적중 실패나 조회 오류가 조용히 발생할 수 있다.</div>
+    </section>
+
+    <section class="slide" id="slide-66">
+      <span class="kicker">Part 65 · Callable Object</span>
+      <h2><code>__call__</code>은 클래스를 “상태를 가진 함수”로 바꾼다</h2>
+      <pre><code>class TemperatureScaler:
+    def __init__(self, temperature: float):
+        self.temperature = temperature
+
+    def __call__(self, logit: float) -> float:
+        return logit / self.temperature
+
+
+scale = TemperatureScaler(0.7)
+print(scale(3.5))</code></pre>
+      <p>callable object는 함수형 인터페이스와 객체 상태를 결합해야 하는 상황에서 강력한 설계 도구가 된다. scoring rule, decoding policy, transform operator, callback object는 모두 <code>__call__</code>과 잘 결합되는 전형적 사례다.</p>
+      <ul class="dense-list">
+        <li><strong>상태 결합</strong> : 반복적으로 넘기던 파라미터를 객체 상태로 캡슐화할 수 있다.</li>
+        <li><strong>파이프라인 적합성</strong> : iterator/generator pipeline 단계를 callable object로 모델링할 수 있다.</li>
+        <li><strong>확장성</strong> : 호출 이력 기록, 내부 캐시, 통계 수집을 자연스럽게 통합할 수 있다.</li>
+      </ul>
+      <div class="formula">$$\text{callable object} = \text{function interface} + \text{encapsulated state} + \text{call-time policy}$$</div>
+    </section>
+
+    <section class="slide" id="slide-67">
+      <span class="kicker">Part 66 · Context Classes</span>
+      <h2><code>__enter__</code>, <code>__exit__</code>를 구현하면 클래스가 수명 주기를 관리한다</h2>
+      <pre><code>class Timer:
+    def __enter__(self):
+        import time
+        self._clock = time.perf_counter
+        self.start = self._clock()
+        return self
+
+    def __exit__(self, exc_type, exc, tb):
+        self.elapsed = self._clock() - self.start
+        return False</code></pre>
+      <p>class는 단순 데이터 구조에 머물지 않고 lifecycle abstraction이 될 수 있다. context manager class는 자원 획득과 해제를 객체 불변식으로 묶기 때문에, 상태가 복잡한 경우에는 generator 기반 context manager보다 더 명시적인 구조를 제공한다.</p>
+      <ul class="dense-list">
+        <li><strong>자원 관리</strong> : 파일, 락, 트랜잭션, 프로파일링 세션을 안전하게 감싼다.</li>
+        <li><strong>예외 정책</strong> : <code>__exit__</code> 반환값으로 예외 삼킴 여부를 결정한다.</li>
+        <li><strong>설계 메시지</strong> : 클래스는 데이터뿐 아니라 시작-사용-정리 경계를 표현할 수 있다.</li>
+      </ul>
+      <div class="formula">$$\text{context class} = \text{enter} \rightarrow \text{use} \rightarrow \text{exit}$$</div>
+    </section>
+
+    <section class="slide" id="slide-68">
+      <span class="kicker">Part 67 · Rare Hooks</span>
+      <h2>박사 수준에서 알아둘 class-level 희귀 훅들</h2>
+      <pre><code>class Meta(type):
+    @classmethod
+    def __prepare__(mcls, name, bases):
+        return {}
+
+class FancyBase:
+    def __mro_entries__(self, bases):
+        return ()
+
+    def __class_getitem__(cls, item):
+        return (cls, item)</code></pre>
+      <p>이 훅들은 빈번히 사용되지는 않지만 Python 클래스 모델의 확장 경계를 드러낸다. 프레임워크나 DSL이 언어 수준 구조처럼 보이는 이유도 상당 부분 이런 훅들의 존재에 있다.</p>
+      <ul class="dense-list">
+        <li><strong><code>__prepare__</code></strong> : 클래스 본문 실행 전 namespace를 교체하여 정의 순서와 특수 매핑을 제어한다.</li>
+        <li><strong><code>__mro_entries__</code></strong> : 동적 기반 클래스 적응이나 가상 상속 계층 구성에 개입한다.</li>
+        <li><strong><code>__class_getitem__</code></strong> : <code>Cls[T]</code> 문법을 런타임에서도 해석하게 한다.</li>
+      </ul>
+      <div class="callout">이 훅들의 가치는 일상적 사용 빈도보다 Python 객체 모델의 표현 한계를 정밀하게 이해하는 데 있다.</div>
+      <div class="formula">$$\text{class extensibility} = \text{definition-time hooks} + \text{resolution hooks} + \text{typing hooks}$$</div>
+    </section>
+
+    <section class="slide" id="slide-69">
+      <span class="kicker">Part 68 · Slots</span>
+      <h2><code>__slots__</code>는 단순 메모리 최적화가 아니라 인스턴스 레이아웃 선언이다</h2>
+      <pre><code>class Sample:
+    __slots__ = ("step", "loss", "__weakref__")
+
+    def __init__(self, step: int, loss: float):
+        self.step = step
+        self.loss = loss</code></pre>
+      <p><code>__slots__</code>는 인스턴스가 가질 수 있는 저장 위치를 클래스 정의 시점에 선언한다. 이 선언은 단순 성능 팁이 아니라, 인스턴스 사전의 존재 여부와 동적 속성 추가 가능성, weak reference 지원 여부까지 규정하는 레이아웃 계약이다.</p>
+      <p>클래스 생성 시 각 slot 이름은 member descriptor로 변환된다. 따라서 <code>__slots__</code>는 메모리 절약 기법인 동시에 descriptor 기반 저장 모델을 생성하는 문법이기도 하다.</p>
+      <ul class="dense-list">
+        <li><strong>member descriptor 생성</strong> : slot 이름마다 클래스 수준 descriptor가 생성되어 저장 위치를 관리한다.</li>
+        <li><strong>동적 속성 통제</strong> : 기본적으로 <code>__dict__</code>가 제거되므로 임의 속성 추가가 차단된다.</li>
+        <li><strong>상속 주의점</strong> : 다중 상속에서는 레이아웃 충돌과 <code>__weakref__</code> 포함 여부를 함께 고려해야 한다.</li>
+      </ul>
+      <div class="formula">$$\text{instance layout} = \text{slot descriptors} + \text{optional } \_\_dict\_\_ + \text{optional } \_\_weakref\_\_$$</div>
+    </section>
+
+    <section class="slide" id="slide-70">
+      <span class="kicker">Part 69 · Attribute Control</span>
+      <h2><code>__setattr__</code>와 <code>__delattr__</code>는 상태 전이 정책을 장악한다</h2>
+      <pre><code>class Probability:
+    __slots__ = ("value",)
+
+    def __setattr__(self, name, value):
+        if name == "value" and not (0.0 &lt;= value &lt;= 1.0):
+            raise ValueError("probability must be in [0, 1]")
+        object.__setattr__(self, name, value)</code></pre>
+      <p>속성 쓰기는 단순 저장 동작이 아니라 객체 불변식이 통과해야 하는 상태 전이로 해석되어야 한다. <code>__setattr__</code>와 <code>__delattr__</code>는 이 전이 경로를 제어하는 중앙 훅이며, validator, proxy, frozen object emulation, audit logging이 모두 이 층과 연결된다.</p>
+      <p>이 훅을 재정의할 때는 재귀를 피하기 위해 반드시 <code>object.__setattr__</code> 또는 상위 구현으로 위임해야 한다. 그렇지 않으면 쓰기 경로가 자기 자신을 무한 호출하게 된다.</p>
+      <ul class="dense-list">
+        <li><strong>불변식 집행</strong> : 범위 제한, 상태 머신 전이 규칙, 접근 감사 정책을 한 곳에 모을 수 있다.</li>
+        <li><strong>재귀 회피</strong> : 커스텀 훅 내부에서 일반 대입문을 사용하면 무한 재귀가 발생할 수 있다.</li>
+        <li><strong>설계 해석</strong> : 읽기 경로의 descriptor와 쓰기 경로의 <code>__setattr__</code>를 결합하면 강한 객체 정책을 만들 수 있다.</li>
+      </ul>
+      <div class="formula">$$\text{attribute write} = \text{validation} + \text{storage routing} + \text{invariant preservation}$$</div>
+    </section>
+
+    <section class="slide" id="slide-71">
+      <span class="kicker">Part 70 · Class Cell</span>
+      <h2>zero-argument <code>super()</code> 뒤에는 <code>__classcell__</code>이 존재한다</h2>
+      <pre><code>class Base:
+    def describe(self):
+        return "base"
+
+class Child(Base):
+    def describe(self):
+        return super().describe() + " -> child"</code></pre>
+      <p>zero-argument <code>super()</code>는 문법적 축약에 그치지 않는다. 컴파일러는 해당 메서드 안에 숨은 <code>__class__</code> cell을 주입하고, 런타임은 이를 이용해 현재 클래스와 첫 번째 인자를 바탕으로 다음 MRO 후보를 계산한다.</p>
+      <p>메타클래스가 클래스 생성을 깊게 커스터마이즈할 때는 <code>__classcell__</code> 전달이 깨지지 않도록 주의해야 한다. 이 세부를 놓치면 협력적 <code>super()</code>가 런타임 오류를 일으킬 수 있다.</p>
+      <ul class="dense-list">
+        <li><strong>컴파일러 개입</strong> : 메서드가 <code>super()</code> 또는 <code>__class__</code>를 사용하면 클래스 cell이 생성된다.</li>
+        <li><strong>메타클래스 책임</strong> : 커스텀 클래스 생성 파이프라인은 <code>__classcell__</code>를 보존해야 한다.</li>
+        <li><strong>의미론</strong> : zero-argument <code>super()</code>는 클래스 본문과 클로저 의미론까지 포함하는 고급 문법이다.</li>
+      </ul>
+      <div class="formula">$$\texttt{super()} \equiv \texttt{super}(\_\_class\_\_, \text{first argument})$$</div>
+    </section>
+
+    <section class="slide" id="slide-72">
+      <span class="kicker">Part 71 · Virtual Subtyping</span>
+      <h2><code>ABCMeta.register</code>와 <code>__subclasshook__</code>는 가상 서브클래스를 정의한다</h2>
+      <pre><code>from abc import ABCMeta, abstractmethod
+
+class Reader(metaclass=ABCMeta):
+    @abstractmethod
+    def read(self, n: int = -1) -&gt; str: ...
+
+    @classmethod
+    def __subclasshook__(cls, C):
+        if any("read" in B.__dict__ for B in C.__mro__):
+            return True
+        return NotImplemented</code></pre>
+      <p>가상 서브클래싱은 상속 계층을 실제로 수정하지 않으면서 런타임 계약 멤버십을 조정하는 메커니즘이다. 즉, <code>issubclass</code> 결과와 실제 MRO 포함 관계를 분리할 수 있다.</p>
+      <p>이 기능은 어댑터 패턴이나 오래된 타입을 새 계약에 편입할 때 유용하지만, 메서드 구현을 자동으로 주입하지는 않는다. 따라서 구조 호환성과 의미 호환성을 동시에 만족하는 경우에만 사용해야 한다.</p>
+      <ul class="dense-list">
+        <li><strong>계약 멤버십</strong> : nominal inheritance 없이도 런타임 계약 판정을 조정할 수 있다.</li>
+        <li><strong>MRO 비개입</strong> : 가상 서브클래스는 메서드 탐색 순서나 메모리 레이아웃을 바꾸지 않는다.</li>
+        <li><strong>정적 분석 차이</strong> : 런타임 적응과 정적 타입 시스템의 판단이 다를 수 있음을 명시적으로 인식해야 한다.</li>
+      </ul>
+      <div class="formula">$$\texttt{issubclass}(C, A)=\texttt{True} \not\Rightarrow A \in MRO(C)$$</div>
+    </section>
+
+    <section class="slide" id="slide-73">
+      <span class="kicker">Part 72 · Advanced Typing</span>
+      <h2><code>Self</code>, variance, generic method는 class API의 타입 보존성을 다룬다</h2>
+      <pre><code>from typing import Generic, Self, TypeVar
+
+T_co = TypeVar("T_co", covariant=True)
+
+class FrozenBox(Generic[T_co]):
+    def __init__(self, value: T_co):
+        self._value = value
+
+    def get(self) -&gt; T_co:
+        return self._value
+
+class Builder:
+    def clone(self) -&gt; Self:
+        return type(self)()</code></pre>
+      <p>고급 class 설계에서는 런타임 상속 구조와 정적 대체 가능성 규칙을 함께 맞추어야 한다. 읽기 전용 추상화는 공변적으로 모델링할 수 있지만, 쓰기 가능한 컨테이너는 대개 불변(invariant)하게 유지해야 안전하다.</p>
+      <p><code>Self</code>는 메서드가 정확히 현재 동적 클래스의 인스턴스를 반환함을 표현한다. 이 표기는 fluent API, builder, clone, 대체 생성자 설계에서 하위 클래스 정밀도를 유지하는 핵심 도구다.</p>
+      <ul class="dense-list">
+        <li><strong>variance 선택</strong> : 타입 매개변수는 읽기/쓰기 가능성에 따라 공변, 반공변, 불변이 결정된다.</li>
+        <li><strong><code>Self</code></strong> : 상속된 메서드 체인에서 반환 타입 정밀도를 유지한다.</li>
+        <li><strong>설계 원리</strong> : generic class는 값 타입뿐 아니라 대체 가능성 법칙까지 문서화해야 한다.</li>
+      </ul>
+      <div class="formula">$$A \le B \Rightarrow \text{ReadOnly}[A] \le \text{ReadOnly}[B],\qquad \text{mutable containers are typically invariant}$$</div>
+    </section>
+
+    <section class="slide" id="slide-74">
+      <span class="kicker">Part 73 · Metaclass Conflict</span>
+      <h2>다중 상속에서는 metaclass도 합성 가능해야 한다</h2>
+      <pre><code>class MetaA(type): ...
+class MetaB(type): ...
+
+class A(metaclass=MetaA): ...
+class B(metaclass=MetaB): ...
+
+# class C(A, B): ...   # TypeError
+
+class MetaAB(MetaA, MetaB): ...
+class C(A, B, metaclass=MetaAB): ...</code></pre>
+      <p>다중 상속의 제약은 클래스 계층에만 적용되지 않는다. 새 클래스의 metaclass는 모든 기반 클래스 metaclass의 공통 하위 타입이어야 하며, 그렇지 않으면 클래스 생성 자체가 거부된다.</p>
+      <p>프레임워크를 조합할 때 발생하는 metaclass conflict는 이차적인 선형화 문제다. 따라서 metaclass 설계는 기능 추가보다 조합 가능성을 우선 고려해야 한다.</p>
+      <ul class="dense-list">
+        <li><strong>합성 제약</strong> : 기반 클래스의 metaclass들을 동시에 만족하는 파생 metaclass가 필요하다.</li>
+        <li><strong>실무 위험</strong> : 서로 다른 라이브러리의 base class를 단순 조합하는 순간 충돌이 드러날 수 있다.</li>
+        <li><strong>회피 전략</strong> : descriptor, decorator, <code>__init_subclass__</code>로 충분하면 metaclass 사용을 줄이는 편이 안전하다.</li>
+      </ul>
+      <div class="formula">$$\forall i,\ \texttt{issubclass}(\mathrm{Meta}(C), \mathrm{Meta}(B_i))$$</div>
+    </section>
+
+    <section class="slide" id="slide-75">
+      <span class="kicker">Part 74 · Reflective Surface</span>
+      <h2><code>__annotations__</code>, <code>__match_args__</code>, <code>inspect</code>는 class의 반사 표면을 형성한다</h2>
+      <pre><code>class Point:
+    __match_args__ = ("x", "y")
+    x: float
+    y: float
+
+    def __init__(self, x: float, y: float):
+        self.x = x
+        self.y = y</code></pre>
+      <p>현대 Python 프레임워크는 객체가 수행하는 메서드만 읽지 않는다. 클래스 본문에 남겨진 annotation, descriptor, pattern metadata, call signature를 조합해 검증기, serializer, ORM, dependency injection 도구를 구성한다.</p>
+      <p>이 관점에서 class는 단순 실행 단위가 아니라 선언적 schema surface이기도 하다. 즉, 반사 가능한 메타데이터의 품질이 곧 도구 생태계와의 결합 품질을 결정한다.</p>
+      <ul class="dense-list">
+        <li><strong><code>__annotations__</code></strong> : 타입 힌트를 넘어 도메인 스키마 정보를 제공한다.</li>
+        <li><strong><code>__match_args__</code></strong> : class pattern matching의 위치 기반 분해 순서를 제어한다.</li>
+        <li><strong>반사 도구</strong> : <code>inspect</code>, serializer, validator는 이 메타데이터 표면을 읽어 동작한다.</li>
+      </ul>
+      <div class="formula">$$\text{reflective class surface} = \text{annotations} + \text{descriptors} + \text{match metadata} + \text{call signature}$$</div>
+    </section>
+
+    <section class="slide" id="slide-76">
+      <span class="kicker">Part 75 · Framework Pattern</span>
+      <h2>실제 프레임워크는 descriptor, annotation, subclass hook를 조합한다</h2>
+      <pre><code>class Field:
+    def __init__(self, cast):
+        self.cast = cast
+
+    def __set_name__(self, owner, name):
+        self.name = name
+
+    def __get__(self, obj, objtype=None):
+        if obj is None:
+            return self
+        return obj.__dict__[self.name]
+
+    def __set__(self, obj, value):
+        obj.__dict__[self.name] = self.cast(value)
+
+class Schema:
+    def __init_subclass__(cls):
+        super().__init_subclass__()
+        cls.fields = {
+            name: attr for name, attr in cls.__dict__.items()
+            if isinstance(attr, Field)
+        }</code></pre>
+      <p>ORM, validation library, configuration system, experiment tracking framework는 보통 하나의 마법 훅으로 만들어지지 않는다. descriptor가 필드 정책을 담당하고, annotation이 스키마를 제공하며, subclass hook 또는 metaclass가 정의 시점 등록을 수행하는 식의 조합 구조가 일반적이다.</p>
+      <p>박사 수준에서 class 문법을 이해한다는 것은 개별 dunder 이름을 암기하는 일이 아니라, 이 훅들을 조합해 도메인 언어와 런타임 계약을 설계할 수 있다는 뜻에 가깝다.</p>
+      <ul class="dense-list">
+        <li><strong>필드 정책</strong> : descriptor가 개별 속성의 검증과 저장 규칙을 담당한다.</li>
+        <li><strong>정의 시점 수집</strong> : subclass hook이나 metaclass가 스키마 레지스트리를 만든다.</li>
+        <li><strong>프레임워크 해석</strong> : class body는 선언적 DSL, instance는 실행 객체로 분업된다.</li>
+      </ul>
+      <div class="formula">$$\text{framework class DSL} = \text{annotated namespace} + \text{descriptor semantics} + \text{definition-time registration}$$</div>
+    </section>
+
+    <section class="slide" id="slide-77">
+      <span class="kicker">Part 76 · Integrated Case</span>
+      <h2>모든 것을 합친 사례: stream analytics architecture</h2>
+      <pre><code>raw lines (iterator)
+  -> tokenize (generator)
+  -> parse into dataclass records
+  -> optional list materialization for replay
+  -> analyzer class exposing metrics API</code></pre>
+      <div class="cols-2">
+        <div class="card">
+          <h3>각 요소의 역할</h3>
+          <p>iterator는 데이터 접근 계약을 표준화하고, generator는 변환 파이프라인을 만들며, list는 필요 시 결과를 고정하고, class는 이를 안정적인 API와 불변식으로 조직한다.</p>
+        </div>
+        <div class="card">
+          <h3>왜 이 구조가 강한가</h3>
+          <p>입력이 작을 때는 list 중심, 입력이 클 때는 generator 중심, 도메인 정책은 class 중심으로 조정할 수 있으므로 규모 변화와 요구 변화에 모두 견고하다.</p>
+        </div>
+      </div>
+      <p>이 구조는 강의 전체의 요약이기도 하다. 네 개의 주제는 분리된 문법 항목이 아니라 하나의 Python 설계 스택을 구성한다.</p>
+      <ul class="dense-list">
+        <li><strong>입력 층</strong> : iterator는 데이터 접근 경로를 표준화해 다양한 소스를 같은 방식으로 연결한다.</li>
+        <li><strong>변환 층</strong> : generator는 토큰화, 필터링, 파싱 같은 중간 계산을 지연 파이프라인으로 조직한다.</li>
+        <li><strong>고정과 API 층</strong> : list는 재사용 가능한 값 표면을 만들고 class는 이를 안정적 도메인 API로 묶는다.</li>
+      </ul>
+      <div class="formula">$$\text{system pipeline} = \text{iterator source} \rightarrow \text{generator transform} \rightarrow \text{list boundary} \rightarrow \text{class API}$$</div>
+    </section>
+
+    <section class="slide" id="slide-78">
+      <span class="kicker">Part 77 · Final Heuristics</span>
+      <h2>최종 설계 휴리스틱과 과제 제안</h2>
+      <div class="big-points">
+        <div><strong>휴리스틱 1</strong> : 데이터를 저장하는 방식보다 생산과 소비 방식이 우선이면 iterator/generator 모델이 먼저 고려되어야 한다.</div>
+        <div><strong>휴리스틱 2</strong> : 재사용, 디버깅, 정렬, 길이, 랜덤 접근이 핵심 요구가 되는 순간 list materialization이 설계 경계가 된다.</div>
+        <div><strong>휴리스틱 3</strong> : 프로토콜과 정책을 외부 API로 안정화해야 할 때 class가 도입되어야 한다.</div>
+        <div><strong>휴리스틱 4</strong> : 필드 수준 정책은 descriptor/property, 클래스 정의 시점 정책은 <code>__init_subclass__</code>, 마지막 단계에서만 metaclass를 사용한다.</div>
+      </div>
+      <div class="callout">과제 구성: 1) JSONL 로그 스트림을 읽는 iterable class 구현, 2) rolling median generator 구현, 3) dataclass와 descriptor를 결합한 실험 설정 모델 설계, 4) lazy pipeline과 list materialization 지점을 바꾸어 성능과 재현성 차이를 분석.</div>
+      <p class="lead"><code>iterator</code>는 접근 계약, <code>generator</code>는 실행 전략, <code>list</code>는 eager boundary, <code>class</code>는 이들을 시스템 수준 API와 정책으로 통합하는 구조다. 이 네 층을 함께 이해할 때 Python은 단순 구현 언어를 넘어 설계 언어로 기능한다.</p>
+      <ul class="dense-list">
+        <li><strong>프로토콜 우선</strong> : 순회와 접근 계약을 먼저 정의하면 이후 구현 선택이 선명해진다.</li>
+        <li><strong>경계 명시</strong> : eager materialization 지점은 성능과 재현성을 동시에 좌우한다.</li>
+        <li><strong>객체 모델 통합</strong> : class는 상태, 정책, reflection, metaprogramming을 한 자리에서 조직하는 최종 추상화다.</li>
+      </ul>
+      <div class="formula">$$\text{Python design stack} = \text{protocol} + \text{execution strategy} + \text{materialization boundary} + \text{object abstraction}$$</div>
+    </section>
+  </main>
+
+  <div class="present-controls" aria-label="발표 모드 제어">
+    <button id="presentToggle" class="present-toggle" type="button">발표 모드: OFF</button>
+    <span id="presentStatus" class="present-status">P 토글 · ←/→ 이동</span>
+  </div>
+
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/highlight.min.js"></script>
+  <script>
+    let pyodide = null;
+    let pyodidePromise = null;
+    let pyodideScriptPromise = null;
+
+    async function ensurePyodideScript() {
+      if (window.loadPyodide) return;
+      if (!pyodideScriptPromise) {
+        pyodideScriptPromise = new Promise((resolve, reject) => {
+          const script = document.createElement("script");
+          script.src = "https://cdn.jsdelivr.net/pyodide/v0.27.2/full/pyodide.js";
+          script.async = true;
+          script.onload = () => resolve();
+          script.onerror = () => reject(new Error("pyodide.js 로드 실패"));
+          document.head.appendChild(script);
+        });
+      }
+      await pyodideScriptPromise;
+    }
+
+    async function ensurePyodide() {
+      if (pyodide) return pyodide;
+      if (!pyodidePromise) {
+        pyodidePromise = ensurePyodideScript()
+          .then(() => loadPyodide())
+          .then((runtime) => {
+            pyodide = runtime;
+            return pyodide;
+          });
+      }
+      return pyodidePromise;
+    }
+
+    async function runPythonSnippet(code) {
+      const runtime = await ensurePyodide();
+      const wrapped = `
+import sys, io, traceback
+_buf = io.StringIO()
+_old_out, _old_err = sys.stdout, sys.stderr
+sys.stdout = _buf
+sys.stderr = _buf
+try:
+${code.split("\n").map((line) => "    " + line).join("\n")}
+except Exception:
+    traceback.print_exc()
+finally:
+    sys.stdout = _old_out
+    sys.stderr = _old_err
+_buf.getvalue()
+`;
+      return runtime.runPythonAsync(wrapped);
+    }
+
+    function initSlideNumbers() {
+      const slides = Array.from(document.querySelectorAll(".slide"));
+      slides.forEach((slide, index) => {
+        if (!slide.id) slide.id = `slide-${index + 1}`;
+        if (!slide.querySelector(".slide-footer-note")) {
+          const footer = document.createElement("p");
+          footer.className = "slide-footer-note";
+          footer.textContent = "Advanced Python lecture material";
+          slide.appendChild(footer);
+        }
+        if (!slide.querySelector(".slide-number")) {
+          const num = document.createElement("span");
+          num.className = "slide-number";
+          num.textContent = `${index + 1} / ${slides.length}`;
+          slide.appendChild(num);
+        }
+      });
+    }
+
+    function initPresentationMode() {
+      const slides = Array.from(document.querySelectorAll(".slide"));
+      const toggleBtn = document.getElementById("presentToggle");
+      const statusEl = document.getElementById("presentStatus");
+      if (!slides.length || !toggleBtn || !statusEl) return;
+
+      let enabled = false;
+      let currentIndex = 0;
+
+      const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
+
+      function parseHashIndex() {
+        const match = (window.location.hash || "").match(/^#slide-(\d+)$/);
+        if (!match) return null;
+        const idx = Number(match[1]) - 1;
+        if (Number.isNaN(idx)) return null;
+        return clamp(idx, 0, slides.length - 1);
+      }
+
+      function updateHash(index) {
+        const nextHash = `#slide-${index + 1}`;
+        if (window.location.hash !== nextHash) {
+          history.replaceState(null, "", nextHash);
+        }
+      }
+
+      function render() {
+        slides.forEach((slide, idx) => {
+          slide.classList.toggle("active-slide", enabled && idx === currentIndex);
+        });
+        document.body.classList.toggle("presentation-mode", enabled);
+        toggleBtn.textContent = `발표 모드: ${enabled ? "ON" : "OFF"}`;
+        statusEl.textContent = enabled
+          ? `${currentIndex + 1} / ${slides.length} · ←/→ 이동 · Esc 종료`
+          : "P 토글 · ←/→ 이동";
+        if (enabled) updateHash(currentIndex);
+      }
+
+      function goTo(index, scrollWhenNormal = true) {
+        currentIndex = clamp(index, 0, slides.length - 1);
+        render();
+        if (!enabled && scrollWhenNormal) {
+          slides[currentIndex].scrollIntoView({ behavior: "smooth", block: "start" });
+          updateHash(currentIndex);
+        }
+      }
+
+      function setMode(nextEnabled) {
+        enabled = nextEnabled;
+        if (enabled) {
+          const hashIndex = parseHashIndex();
+          if (hashIndex !== null) currentIndex = hashIndex;
+          window.scrollTo({ top: 0, behavior: "auto" });
+        }
+        render();
+        if (!enabled) {
+          slides[currentIndex].scrollIntoView({ behavior: "smooth", block: "start" });
+          updateHash(currentIndex);
+        }
+      }
+
+      function isTypingContext(target) {
+        if (!target) return false;
+        return Boolean(target.closest("input, textarea, select, button, [contenteditable], .mini-run-btn"));
+      }
+
+      toggleBtn.addEventListener("click", () => {
+        setMode(!enabled);
+      });
+
+      window.addEventListener("hashchange", () => {
+        const idx = parseHashIndex();
+        if (idx !== null) goTo(idx, !enabled);
+      });
+
+      window.addEventListener("keydown", (event) => {
+        if (isTypingContext(event.target)) return;
+        if ((event.key === "p" || event.key === "P") && !event.metaKey && !event.ctrlKey && !event.altKey) {
+          event.preventDefault();
+          setMode(!enabled);
+          return;
+        }
+        if (!enabled) return;
+        if (["ArrowRight", "ArrowDown", "PageDown", " "].includes(event.key)) {
+          event.preventDefault();
+          goTo(currentIndex + 1, false);
+        } else if (["ArrowLeft", "ArrowUp", "PageUp"].includes(event.key)) {
+          event.preventDefault();
+          goTo(currentIndex - 1, false);
+        } else if (event.key === "Home") {
+          event.preventDefault();
+          goTo(0, false);
+        } else if (event.key === "End") {
+          event.preventDefault();
+          goTo(slides.length - 1, false);
+        } else if (event.key === "Escape") {
+          event.preventDefault();
+          setMode(false);
+        }
+      });
+
+      const initialIndex = parseHashIndex();
+      if (initialIndex !== null) currentIndex = initialIndex;
+      const params = new URLSearchParams(window.location.search);
+      if (params.get("present") === "1") {
+        setMode(true);
+      } else {
+        render();
+      }
+    }
+
+    function insertTextAtCursor(text) {
+      const selection = window.getSelection();
+      if (!selection || selection.rangeCount === 0) return;
+      const range = selection.getRangeAt(0);
+      range.deleteContents();
+      const node = document.createTextNode(text);
+      range.insertNode(node);
+      range.setStartAfter(node);
+      range.setEndAfter(node);
+      selection.removeAllRanges();
+      selection.addRange(range);
+    }
+
+    function normalizeCodeText(raw) {
+      return (raw || "").replace(/\u00a0/g, " ").replace(/\r\n?/g, "\n");
+    }
+
+    function getCodeText(codeEl) {
+      return normalizeCodeText(codeEl.textContent || "");
+    }
+
+    function highlightCodeBlock(codeEl) {
+      const plain = getCodeText(codeEl);
+      codeEl.classList.add("hljs", "language-python");
+      if (!window.hljs) {
+        codeEl.textContent = plain;
+        return;
+      }
+      const highlighted = window.hljs.highlight(plain, { language: "python" }).value;
+      codeEl.innerHTML = highlighted;
+    }
+
+    function updateLineNumbers(codeEl, lineEl) {
+      const lineCount = Math.max(1, getCodeText(codeEl).split("\n").length);
+      const nums = [];
+      for (let i = 1; i <= lineCount; i += 1) nums.push(String(i));
+      lineEl.textContent = nums.join("\n");
+    }
+
+    async function runInlineCode(codeText, outputEl, statusEl) {
+      statusEl.textContent = pyodide ? "실행 중..." : "Pyodide 로딩 중...";
+      outputEl.textContent = "";
+      try {
+        const result = await runPythonSnippet(codeText);
+        outputEl.textContent = result || "(출력 없음)";
+        statusEl.textContent = "실행 완료";
+      } catch (error) {
+        outputEl.textContent = String(error);
+        statusEl.textContent = "실행 실패";
+      }
+    }
+
+    function initEditableExamples() {
+      const blocks = Array.from(document.querySelectorAll("pre.live-code > code"));
+      blocks.forEach((codeEl) => {
+        const pre = codeEl.closest("pre");
+        if (!pre) return;
+
+        const lineEl = document.createElement("div");
+        lineEl.className = "line-numbers";
+        pre.insertBefore(lineEl, codeEl);
+        updateLineNumbers(codeEl, lineEl);
+
+        codeEl.setAttribute("contenteditable", "plaintext-only");
+        codeEl.spellcheck = false;
+        codeEl.setAttribute("autocapitalize", "off");
+        codeEl.setAttribute("autocorrect", "off");
+        codeEl.setAttribute("data-gramm", "false");
+
+        const setPlainEditing = () => {
+          codeEl.textContent = getCodeText(codeEl);
+        };
+
+        codeEl.addEventListener("focus", () => {
+          setPlainEditing();
+          updateLineNumbers(codeEl, lineEl);
+        });
+
+        codeEl.addEventListener("blur", () => {
+          highlightCodeBlock(codeEl);
+          updateLineNumbers(codeEl, lineEl);
+        });
+
+        codeEl.addEventListener("keydown", (event) => {
+          if (event.key === "Tab") {
+            event.preventDefault();
+            insertTextAtCursor("  ");
+          }
+          if (event.key === "Enter" && !event.shiftKey) {
+            event.preventDefault();
+            insertTextAtCursor("\n");
+          }
+          if (event.key === "Enter" && event.shiftKey) {
+            event.preventDefault();
+            runBtn.click();
+          }
+        });
+
+        codeEl.addEventListener("paste", (event) => {
+          event.preventDefault();
+          const text = event.clipboardData?.getData("text/plain") || "";
+          insertTextAtCursor(text);
+        });
+
+        codeEl.addEventListener("input", () => {
+          updateLineNumbers(codeEl, lineEl);
+        });
+
+        const runner = document.createElement("div");
+        runner.className = "inline-runner";
+
+        const head = document.createElement("div");
+        head.className = "inline-runner-head";
+
+        const runBtn = document.createElement("button");
+        runBtn.type = "button";
+        runBtn.className = "mini-run-btn";
+        runBtn.textContent = "바로 실행";
+
+        const hint = document.createElement("span");
+        hint.className = "inline-status";
+        hint.textContent = "대기";
+
+        const output = document.createElement("div");
+        output.className = "inline-output";
+        output.textContent = "(출력 대기 중)";
+
+        runBtn.addEventListener("click", () => {
+          runInlineCode(getCodeText(codeEl), output, hint);
+        });
+
+        head.appendChild(runBtn);
+        head.appendChild(hint);
+        runner.appendChild(head);
+        runner.appendChild(output);
+        pre.insertAdjacentElement("afterend", runner);
+
+        highlightCodeBlock(codeEl);
+        updateLineNumbers(codeEl, lineEl);
+      });
+    }
+
+    window.addEventListener("DOMContentLoaded", () => {
+      if (window.renderMathInElement) {
+        renderMathInElement(document.body, {
+          delimiters: [
+            { left: "$$", right: "$$", display: true },
+            { left: "\\(", right: "\\)", display: false }
+          ],
+          throwOnError: false
+        });
+      }
+      initSlideNumbers();
+      initEditableExamples();
+      initPresentationMode();
+    });
+  </script>
+</body>
+</html>
